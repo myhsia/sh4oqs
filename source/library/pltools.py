@@ -13,6 +13,13 @@ matplotlib.rcParams.update({
                                \usepackage{libertinust1math}''',
     "lines.solid_capstyle":  "round",
     "lines.dash_capstyle":   "round",
+    # A round dash cap protrudes lw/2 at each dash end, shortening every
+    # visible gap by one linewidth.  The dash patterns are linewidth-scaled
+    # (``lines.scale_dashes``), so widen each gap by one unit: the visible gap
+    # then equals the butt-cap one while the round caps are kept.
+    "lines.dashed_pattern":  [3.7, 2.6],
+    "lines.dotted_pattern":  [1.0, 2.65],
+    "lines.dashdot_pattern": [6.4, 2.6, 1.0, 2.6],
     "axes.formatter.use_mathtext": True,
 })
 PlotLine: TypeAlias = (
