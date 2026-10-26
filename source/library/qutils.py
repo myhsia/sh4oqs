@@ -364,7 +364,7 @@ def get_expval_ABrho0(C: np.ndarray,
     dim2 = C.shape[1]
     assert dim2 == len(basis_list), \
         "The dimension of C and basis_list should match."
-    aa = np.einsum("mn,knm->k", A, basis_list.conj())
+    aa = np.einsum("mn,kmn->k", A, basis_list.conj())
     bb = np.einsum("kmn,nm->k", basis_list, B_rho0)
     return np.einsum("j,tjk,k->t", aa, C, bb)
 
