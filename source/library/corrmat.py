@@ -37,12 +37,14 @@ Brho0      = {"pop": rho0["0"], "+": rho0["0"], "-": rho0["0"],
               "corr": X @ rho0["0"], "xorr": Y @ rho0["x"]}
 
 
-def observables(C: np.ndarray) -> dict:
+def observables(C: np.ndarray, normalize: bool = True) -> dict:
     """The five reported series of a basis correlation matrix.
 
     ``C`` is ``(Nt, 4, 4)``; returns ``{"pop": (Nt, 2), "cohe+": (Nt,),
-    "cohe-": (Nt,), "corr": (Nt,), "xorr": (Nt,)}``, all complex, with the
-    autocorrelation normalised to ``corr(0) = 1``.
+    "cohe-": (Nt,), "corr": (Nt,), "xorr": (Nt,)}``, all complex.  With
+    ``normalize`` (the default) the autocorrelation is scaled to
+    ``corr(0) = 1``; a segmented propagation passes ``normalize=False`` and
+    rescales once for the whole series.
     """
     C = np.asarray(C)
     out = {
@@ -54,7 +56,8 @@ def observables(C: np.ndarray) -> dict:
         "corr": get_expval_ABrho0(C, A["corr"], Brho0["corr"], basis_list),
         "xorr": get_expval_ABrho0(C, A["xorr"], Brho0["xorr"], basis_list),
     }
-    out["corr"] = out["corr"] / out["corr"][0]
+    if normalize and out["corr"][0] != 0:
+        out["corr"] = out["corr"] / out["corr"][0]
     return out
 
 # %%

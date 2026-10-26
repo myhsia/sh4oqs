@@ -14,13 +14,18 @@ Scientific background and methodology are described in
 All code is under `source/`, the working directory for the drivers (paths such as `./config` and
 `./output` are relative to it):
 
-- `source/sh.py` — driver: runs the selected methods/cases for a config and writes
-  `output/data/<prefix>/{pop,cohe,cohem,corr,xorr}_<method>_<case>.npz`.
+- `source/sh.py` — driver: runs the selected methods/cases for a config and writes the
+  basis correlation matrix `output/data/<prefix>/corrmat_<method>_<case>.npz` (`save_group`,
+  key = case, `branch = component = ("00","01","10","11")`, `C(0) = I`).  The five reported
+  observables are contractions of it (`library/corrmat.py`).
+- `source/sh_merge.py` — merges the per-case matrices into `corrmat_<method>.npz`
+  (seed files averaged first); labelled sweep runs stay per case.
 - `source/library/surface_hopping/` — `fssh.py` (fewest-switches) and `mash.py` (mapping approach),
   both enabled in `METHODS`, plus `validation.py` (regression suite).
-- `source/sh_error.py` — accuracy of the surface-hopping runs against HEOM (the six-curve metric
-  of `library/mre.py`): the reference and the MKCT curves are rebuilt from the canonical
-  `corrmat_heom.npz` / `corrmat_mkct.npz` with `library/corrmat.py`; writes `output/sh_error.{json,md}`.
+- `source/sh_error.py` — accuracy of the surface-hopping runs against HEOM, with the 32-series
+  correlation-matrix metric of `library/mre.py` (`E/32`, every element equally weighted); the
+  reference and the MKCT matrices come from the canonical `corrmat_heom.npz` /
+  `corrmat_mkct.npz`; writes `output/sh_error.{json,md}`.
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` conda environment.
 
 Shared pieces (`source/reference.py`, `source/config/`, and
@@ -54,6 +59,7 @@ Shared pieces (`source/reference.py`, `source/config/`, and
 ```bash
 cd source
 python sh.py A-base_line -method fssh
+python sh_merge.py --configs A-base_line --methods fssh
 python library/surface_hopping/validation.py
 ```
 

@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "./library"))
 sys.pycache_prefix = os.path.abspath("./output/pycache")
 from surface_hopping import mash, fssh
 from qutils import ohmic_modes, parse_coeffs
-from fsutils import load_config, save_time
+from fsutils import load_config, save_group
+from corrmat import BASIS
 from pltools import parse_xlims
 
 
@@ -72,7 +73,7 @@ def _compute(prefix: str, method: str = "mash", quantum: bool = True,
              anharm: bool = False, n_traj: int = 40000, N: int = 200,
              wmax_factor: float = 10.0, dt: float = 0.01, seed: int = 0,
              n_jobs: int = 1, label: str = ""):
-    """Compute one ``(prefix, method, case)``; return ``(t, tag, result)``."""
+    """Compute one ``(prefix, method, case)``; return ``(t, tag, case, C)``."""
     # 3. Parameters (physical values; ``scale`` is a numerical device only)
     params    = load_config(prefix)
     epsilon   = params["epsilon"]
@@ -104,62 +105,53 @@ def _compute(prefix: str, method: str = "mash", quantum: bool = True,
         dt = min(dt, 0.4 / float(np.max(omega)))
     t     = np.linspace(0.0, tf, int(round(tf / dt)) + 1)
 
-    tag = f"{method}_{_case_name(quantum, anharm)}"
+    case = _case_name(quantum, anharm)
+    tag = f"{method}_{case}"
     if label:
         tag += "_" + label
     print(f"[{prefix}] {tag}: N={N} n_traj={n_traj} tf={tf:g} dt={dt:g} "
           f"beta={beta} wC={wC} lambd={lambd} a={a:.4f} n_jobs={n_jobs}",
           flush = True)
 
-    # 4. Dynamics
+    # 4. Dynamics: the basis correlation matrix (the observables are its
+    # contractions, rebuilt by the analysis scripts).
     if method in ("mash", "lsc"):
         # "lsc" is the same mapping dynamics with the mean-field (continuous Sz)
         # force instead of deterministic hops.
-        res = mash.run_observables(epsilon, Delta, omega, c, beta, t, quantum = quantum,
-                                   anharmon = a, n_traj = n_traj, seed = seed,
-                                   model = model, n_jobs = n_jobs,
-                                   meanfield = (method == "lsc"))
+        C = mash.run_corrmat(epsilon, Delta, omega, c, beta, t, quantum = quantum,
+                             anharmon = a, n_traj = n_traj, seed = seed,
+                             model = model, n_jobs = n_jobs,
+                             meanfield = (method == "lsc"))
     else:
         # "ehrenfest" is FSSH with the mean-field force and no hops.
-        res = fssh.run_observables(epsilon, Delta, omega, c, beta, t,
-                                   quantum = quantum, anharmon = a,
-                                   n_traj = n_traj, seed = seed,
-                                   model = model, n_jobs = n_jobs,
-                                   meanfield = (method == "ehrenfest"))
-    return t, tag, res
+        C = fssh.run_corrmat(epsilon, Delta, omega, c, beta, t,
+                             quantum = quantum, anharmon = a,
+                             n_traj = n_traj, seed = seed,
+                             model = model, n_jobs = n_jobs,
+                             meanfield = (method == "ehrenfest"))
+    return t, tag, case, C
 
 
-def _save(prefix: str, tag: str, t, res):
-    """Write the five observables (only the parent process ever writes)."""
-    outdir = "./output/data/" + prefix
-    save_time(t, res["pop"],
-              outdir, "pop_" + tag + ".npz", identifier = "P", compress = True)
-    save_time(t, res["cohe_p"],
-              outdir, "cohe_" + tag + ".npz", identifier = "S+", compress = True)
-    save_time(t, res["cohe_m"],
-              outdir, "cohem_" + tag + ".npz", identifier = "S-", compress = True)
-    if "Cmu" in res:
-        save_time(t, res["Cmu"],
-                  outdir, "corr_" + tag + ".npz",
-                  identifier = "⟨μ(t)μ(0)⟩", compress = True)
-        save_time(t, res["Cx"],
-                  outdir, "xorr_" + tag + ".npz",
-                  identifier = "⟨Sx(t)Sy(0)⟩", compress = True)
+def _save(prefix: str, tag: str, case: str, t, C):
+    """Write the basis correlation matrix (only the parent ever writes)."""
+    save_group({case: (t, C)}, "./output/data/" + prefix,
+               "corrmat_" + tag + ".npz", identifier = r"$\mathcal{C}(t)$",
+               branch = BASIS, component = BASIS, compress = True)
 
 
 def main(prefix: str, method: str = "mash", quantum: bool = True,
          anharm: bool = False, n_traj: int = 40000, N: int = 200,
          wmax_factor: float = 10.0, dt: float = 0.01, seed: int = 0,
          n_jobs: int = 1):
-    t, tag, res = _compute(prefix, method, quantum, anharm, n_traj, N,
-                           wmax_factor, dt, seed, n_jobs)
-    _save(prefix, tag, t, res)
+    t, tag, case, C = _compute(prefix, method, quantum, anharm, n_traj, N,
+                               wmax_factor, dt, seed, n_jobs)
+    _save(prefix, tag, case, t, C)
 
 
 def _case_job(spec):
     """Worker entry point: one ``(prefix, method, case)`` specification."""
-    t, tag, res = _compute(*spec)
-    return t, tag, res
+    t, tag, case, C = _compute(*spec)
+    return t, tag, case, C
 
 
 RUNLIST = [
@@ -206,13 +198,13 @@ def run(prefix: str, methods = METHODS, cases = CASES, n_traj = None,
                           dt, seed, n_inner, label))
         if workers == 1 or len(specs) == 1:
             for spec in specs:
-                t, tag, res = _compute(*spec)
-                _save(prefix, tag, t, res)
+                t, tag, case, C = _compute(*spec)
+                _save(prefix, tag, case, t, C)
         else:
             with ProcessPoolExecutor(max_workers = workers,
                     mp_context = multiprocessing.get_context("fork")) as pool:
-                for t, tag, res in pool.map(_case_job, specs):
-                    _save(prefix, tag, t, res)
+                for t, tag, case, C in pool.map(_case_job, specs):
+                    _save(prefix, tag, case, t, C)
 
 
 if __name__ == "__main__":
