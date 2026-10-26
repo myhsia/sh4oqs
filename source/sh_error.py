@@ -1,15 +1,18 @@
 # %%
 """Accuracy of the surface-hopping references against HEOM.
 
-The metric is the one of the Padé-order scan (``library/mre.py``): over the
-calculation window ``[0, tf]`` of each config, the relative ``L2`` error of
-six curves
+The metric is the six-curve variant of the shared relative ``L2`` error
+(``library/mre.py``): over the calculation window ``[0, tf]`` of each config,
+the relative ``L2`` error of six curves
 
     {Re P0, Re P1, Re C_xx, Re C_xy, Im C_xx, Im C_xy}
 
-against the HEOM reference, averaged over the six and reported in percent,
-``(E / 6) * 100``.  Only the window is compared: numerator and denominator
-both use the same slice, exactly as ``mre.scan_config`` does.
+against the HEOM reference, averaged over ``mre.N_OBS = 6`` and reported in
+percent, ``(E / 6) * 100``.  Only the window is compared: numerator and
+denominator both use the same slice.  The reference observables are rebuilt
+from the HEOM correlation matrix (``corrmat_heom.npz``) and the MKCT ones from
+``corrmat_mkct.npz``, both in the canonical ``mkct4oqs`` checkout, with
+``library/corrmat.py``.
 
 This is the runner; the algorithm is imported from the shared ``mre`` module.
 It writes ``output/sh_error.json`` (one value per config/method, each row
@@ -28,6 +31,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), "./library"))
 sys.pycache_prefix = os.path.abspath("./output/pycache")
 import mre as core
+from corrmat import observables
 from fsutils import load_config, load_npz, load_group, ensure_dir
 from pltools import parse_xlims
 
@@ -61,10 +65,6 @@ MD   = "./output/sh_error.md"
 def _series(prefix, method, case, quantity, label=""):
     """``(t, y)`` of one observable for one (method, case, label)."""
     d = "./output/data/" + prefix + "/"
-    if method == "mkct":
-        data, _ = load_group(os.path.join(REF, prefix) + os.sep +
-                             quantity + "_mkct.npz")
-        return data[case]
     tag = f"{method}_{case}" + (f"_{label}" if label else "")
     merged = d + ("cohe" if quantity == "cohem" else quantity)
     merged += f"_{method}" + (f"_{label}" if label else "") + ".npz"
@@ -82,39 +82,48 @@ def _series(prefix, method, case, quantity, label=""):
     return t, y
 
 
-def _heom(prefix, quantity, tf):
-    d = os.path.join(REF, prefix) + os.sep
-    t, y = load_npz(d + f"{quantity}_heom.npz")
-    win = t <= tf * (1.0 + 1e-9)
-    return t[win], y[win]
+def _ref(prefix):
+    """``(t, obs)`` of the HEOM reference, rebuilt from its correlation matrix."""
+    path = os.path.join(REF, prefix) + os.sep + "corrmat_heom.npz"
+    t, C = load_group(path)[0]["qhm"]
+    return t, observables(C)
+
+
+def _mkct(prefix, case):
+    """``(t, obs)`` of one MKCT case, rebuilt from the canonical corrmat."""
+    path = os.path.join(REF, prefix) + os.sep + "corrmat_mkct.npz"
+    t, C = load_group(path)[0][case]
+    return t, observables(C)
 
 
 def error(prefix, method, case, label=""):
     """Mean relative error (percent) over the six curves; None if absent."""
-    d = "./output/data/" + prefix + "/"
-    tag = f"{method}_{case}" + (f"_{label}" if label else "")
-    stem = "pop_heom.npz" if method == "mkct" else f"pop_{tag}.npz"
-    exists = (os.path.exists(os.path.join(REF, prefix) + os.sep + stem)
-              if method == "mkct" else os.path.exists(d + stem))
-    if not exists:
-        return None
     tf = parse_xlims(load_config(prefix)["xlims"], reorder = True)[0][1]
-    thp, php = _heom(prefix, "pop", tf)
-    thc, chc = _heom(prefix, "corr", tf)
-    thx, chx = _heom(prefix, "xorr", tf)
-
-    t, pop = _series(prefix, method, case, "pop", label)
+    if method == "mkct":
+        path = os.path.join(REF, prefix) + os.sep + "corrmat_mkct.npz"
+        if not os.path.exists(path):
+            return None
+        t, obs = _mkct(prefix, case)
+        pop, c, x = obs["pop"], obs["corr"], obs["xorr"]
+    else:
+        d = "./output/data/" + prefix + "/"
+        tag = f"{method}_{case}" + (f"_{label}" if label else "")
+        if not os.path.exists(d + f"pop_{tag}.npz"):
+            return None
+        t, pop = _series(prefix, method, case, "pop", label)
+        _, c = _series(prefix, method, case, "corr", label)
+        _, x = _series(prefix, method, case, "xorr", label)
     win = t <= tf * (1.0 + 1e-9)
-    t = t[win]
-    pop = pop[win]
-    _, c = _series(prefix, method, case, "corr", label)
-    _, x = _series(prefix, method, case, "xorr", label)
+    t, pop, c, x = t[win], pop[win], c[win], x[win]
 
-    cmu = core._interp(chc, thc, t)
-    cx = core._interp(chx, thx, t)
+    th, ref = _ref(prefix)
+    hw = th <= tf * (1.0 + 1e-9)
+    thw = th[hw]
+    cmu = core._interp(ref["corr"][hw], thw, t)
+    cx = core._interp(ref["xorr"][hw], thw, t)
     # The six curves of the canonical metric, exactly as mre.scan_config.
-    e = (core._rel(pop[:, 0].real, np.interp(t, thp, php[:, 0].real))
-         + core._rel(pop[:, 1].real, np.interp(t, thp, php[:, 1].real))
+    e = (core._rel(pop[:, 0].real, np.interp(t, thw, ref["pop"][hw].real[:, 0]))
+         + core._rel(pop[:, 1].real, np.interp(t, thw, ref["pop"][hw].real[:, 1]))
          + core._rel(c.real, cmu.real)
          + core._rel(x.real, cx.real)
          + core._rel(c.imag, cmu.imag)

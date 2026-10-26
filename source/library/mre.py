@@ -4,27 +4,28 @@ Shared tool (parallel to ``pltools.py``): the definition of the error, the
 per-order scan, and the markdown/JSON reports.  The figure helpers
 (``matrix_panel``, ``log_range``) live in ``pltools.GridPlt``.
 
-For each config, scan all Pade orders (m, n) with m, n >= 2 and m + n <= N - 2
-(N = number of moments), reconstruct the QHM observables with
-``MKCT_solver.solve_pade``, and score them against the HEOM reference with the
-relative L2 error
+For each config, scan all Padé orders (m, n) with m, n >= 2 and m + n <= N - 2
+(N = number of moments), reconstruct the basis correlation matrix ``C(t)`` with
+``MKCT_solver.solve_pade``, and score it against the HEOM reference matrix with
+the relative L2 error
 
-    E(m, n) = sum_obs || y_obs - y'_obs ||_2 / || y_obs ||_2
+    E(m, n) = sum_{ij} [ ||Re C_ij - Re C'_ij||_2 / ||Re C'_ij||_2
+                       + ||Im C_ij - Im C'_ij||_2 / ||Im C'_ij||_2 ]
 
-over six observables on the full ``[0, tf]`` grid: the real parts of the two
-populations and of the auto-/cross-correlation functions, and the imaginary
-parts of the latter two, i.e. ``{Re P0, Re P1, Re C_xx, Re C_xy, Im C_xx,
-Im C_xy}``.  Every pair is ranked, and the script writes
+over the 32 real series of the 4x4 matrix (16 elements, real and imaginary
+parts), each weighted equally, on the full ``[0, tf]`` grid.  A series whose
+reference vanishes contributes zero (``_rel``).  Every pair is ranked, and the
+script writes
 
     output/pade_scan_results.json   all pairs (infeasible pairs as ``null``),
                                     each row carrying its metric window ``tf``
     output/pade_scan.md             the worst-to-best ranking per config, above
                                     ``MAX_ERR_PCT`` (the JSON keeps all pairs)
 
-reporting the mean relative error ``(E / n_obs) * 100 %``.
+reporting the mean relative error ``(E / 32) * 100 %``.
 
-The driver (``source/pade_scan.py``) owns the run list, the observables and the
-output paths::
+The driver (``source/pade_scan.py``) owns the run list, the solver settings and
+the output paths::
 
     python pade_scan.py            # scan (or reuse cache)
     python pade_scan.py --rescan   # force a fresh scan
@@ -33,12 +34,13 @@ output paths::
 import contextlib, io, json, os, time, warnings
 import numpy as np
 
-from qutils import get_expval_ABrho0
-from fsutils import load_config, load_npz, load_moments, ensure_dir, moments_filename
+from fsutils import (load_config, load_group, ensure_dir, moments_filename,
+                     load_moments)
 from pltools import parse_xlims
 
 
-N_OBS = 6            # default observable count of the metric
+N_CORRMAT = 32       # series of the correlation-matrix metric (16 x Re/Im)
+N_OBS = 6            # size of the six-observable metric (other repositories)
 MAX_ERR_PCT = 1e3    # default cutoff for the markdown tables (%)
 
 
@@ -57,20 +59,37 @@ def _interp(yh, th, t):
     return np.interp(t, th, yh.real) + 1j * np.interp(t, th, yh.imag)
 
 
-def scan_config(prefix, observables, dt=1e-2, tf_factor=20.0, solve=None,
-                data_dir="./output/data", method="block_sp"):
-    """Return ``[{'m','n','Nmax','E','tf'}]`` over all admissible Pade orders.
+def _interp_mat(C, th, t):
+    """Resample a ``(Nt, d, d)`` complex series element by element."""
+    flat = np.asarray(C).reshape(len(th), -1)
+    out = np.empty((len(t), flat.shape[1]), dtype = np.complex128)
+    for k in range(flat.shape[1]):
+        out[:, k] = _interp(flat[:, k], th, t)
+    return out.reshape((len(t),) + np.shape(C)[1:])
 
-    ``observables`` supplies the ``A``/``Brho0`` operator tables and the
-    ``basis_list`` used to evaluate the QHM series; ``solve`` holds the
-    ``solve_pade`` keyword arguments other than ``tf``/``tfout``/``dt``.
+
+def _corrmat_error(C, C_ref):
+    """Sum of the 32 relative errors of two ``(Nt, 4, 4)`` matrices."""
+    E = 0.0
+    for i in range(C.shape[1]):
+        for j in range(C.shape[2]):
+            E += _rel(C[:, i, j].real, C_ref[:, i, j].real)
+            E += _rel(C[:, i, j].imag, C_ref[:, i, j].imag)
+    return float(E)
+
+
+def scan_config(prefix, dt=1e-2, tf_factor=20.0, solve=None,
+                data_dir="./output/data", method="block_sp"):
+    """Return ``[{'m','n','Nmax','E','tf'}]`` over all admissible Padé orders.
+
+    ``E`` is the sum of the 32 relative errors of the correlation-matrix
+    elements (``_corrmat_error``); ``solve`` holds the ``solve_pade`` keyword
+    arguments other than ``tf``/``tfout``/``dt``.
     """
-    # Imported lazily: the error functions also serve repositories that do
+    # Imported lazily: the error helpers also serve repositories that do
     # not ship the MKCT solver (e.g. the surface-hopping reference).
     from mkct_pade.mkct_solver import MKCT_solver
     solve = dict(solve or {})
-    A, Brho0 = observables["A"], observables["Brho0"]
-    basis_list = observables["basis_list"]
     params = load_config(prefix)
     rescale = params["scale"]
     tf = parse_xlims(params["xlims"], reorder=True)[0][1]
@@ -78,9 +97,7 @@ def scan_config(prefix, observables, dt=1e-2, tf_factor=20.0, solve=None,
     mom = load_moments(d + moments_filename(method, "matrix"))["qhm"]
     N = mom.shape[0]
     Mmax = N - 2
-    th, ph = load_npz(d + "pop_heom.npz")
-    _, Cmuh = load_npz(d + "corr_heom.npz")
-    _, Cxh = load_npz(d + "xorr_heom.npz")
+    th, Ch = load_group(d + "corrmat_heom.npz")[0]["qhm"]
     if th[-1] > tf * (1.0 + 1e-6):
         warnings.warn(
             f"[{prefix}] HEOM reference reaches t={th[-1]:g} but the metric "
@@ -88,7 +105,7 @@ def scan_config(prefix, observables, dt=1e-2, tf_factor=20.0, solve=None,
             stacklevel=2)
     # Keep only the calculation window: numerator and denominator both use it.
     win = th <= tf * (1.0 + 1e-9)
-    thw, phw, Cmw, Cxw = th[win], ph[win], Cmuh[win], Cxh[win]
+    thw, Chw = th[win], Ch[win]
 
     solver = MKCT_solver.init(mom, rescale=rescale)
     res = []
@@ -100,23 +117,7 @@ def scan_config(prefix, observables, dt=1e-2, tf_factor=20.0, solve=None,
                     t, Ct = solver.solve_pade(
                         tf=tf_factor * tf, tfout=tf, dt=dt, kernel_order=1,
                         pade_order=(m, n), **solve)
-                pop = np.zeros((len(t), 2), complex)
-                for i in range(2):
-                    pop[:, i] = get_expval_ABrho0(
-                        Ct, A["pop"][i], Brho0["pop"], basis_list)
-                Cmu = get_expval_ABrho0(Ct, A["corr"], Brho0["corr"], basis_list)
-                Cmu = Cmu / Cmu[0]
-                Cx = get_expval_ABrho0(Ct, A["xorr"], Brho0["xorr"], basis_list)
-                phi = np.stack([np.interp(t, thw, phw[:, i]) for i in range(2)], axis=1)
-                Cmu_i = _interp(Cmw, thw, t)
-                Cx_i = _interp(Cxw, thw, t)
-                E = (_rel(pop[:, 0].real, phi[:, 0])
-                     + _rel(pop[:, 1].real, phi[:, 1])
-                     + _rel(Cmu.real, Cmu_i.real)
-                     + _rel(Cx.real, Cx_i.real)
-                     + _rel(Cmu.imag, Cmu_i.imag)
-                     + _rel(Cx.imag, Cx_i.imag))
-                E = float(E)
+                E = _corrmat_error(Ct, _interp_mat(Chw, thw, t))
                 if not np.isfinite(E):
                     E = np.inf
             except Exception:
@@ -130,16 +131,17 @@ def scan_config(prefix, observables, dt=1e-2, tf_factor=20.0, solve=None,
     return res
 
 
-def write_markdown(raw, path, n_obs=N_OBS, max_pct=MAX_ERR_PCT, runlist=None):
+def write_markdown(raw, path, n_obs=N_CORRMAT, max_pct=MAX_ERR_PCT, runlist=None):
     """Worst-to-best ranking of the feasible pairs, above the error cutoff."""
     runlist = list(runlist if runlist is not None else raw)
     lines = [
         "# Pade-order scan (QHM vs HEOM)", "",
-        "Error metric: `E = sum_obs ||y_obs - y'_obs||_2 / ||y_obs||_2` over the "
-        "full `[0, tf]` (the config's window from `xlims`, listed per config), "
-        "QHM vs HEOM; the tables report the **mean relative "
-        f"error** `(E/{n_obs})*100%` over the six observables (the real parts of "
-        "P0, P1, C_xx, C_xy and the imaginary parts of C_xx, C_xy).",
+        "Error metric: `E = sum_{ij} ||C_ij - C'_ij||_2 / ||C'_ij||_2` over the "
+        "32 real series of the 4x4 basis correlation matrix (real and imaginary "
+        "parts of each element) and the full `[0, tf]` (the config's window "
+        "from `xlims`, listed per config), QHM vs HEOM; the tables report the "
+        f"**mean relative error** `(E/{n_obs})*100%`, each series weighted "
+        "equally.",
         "`Nmax = m + n + 2`; pairs satisfy `m, n >= 2` and singular/infeasible "
         f"pairs are excluded. Pairs with a mean error above `{max_pct:g}%` are "
         "omitted from the tables (the JSON keeps them); each config lists the "
@@ -191,12 +193,12 @@ def _from_jsonable(raw):
     return raw
 
 
-def run(runlist, observables, json_path, md_path, *, n_obs=N_OBS,
+def run(runlist, json_path, md_path, *, n_obs=N_CORRMAT,
         max_pct=MAX_ERR_PCT, rescan=False, **scan_kwargs):
     """Scan ``runlist`` (or load the JSON cache), then write both artifacts."""
     ensure_dir(os.path.dirname(json_path))
     if rescan or not os.path.exists(json_path):
-        raw = {p: scan_config(p, observables, **scan_kwargs) for p in runlist}
+        raw = {p: scan_config(p, **scan_kwargs) for p in runlist}
         print("scanned", len(runlist), "configs", flush=True)
     else:
         with open(json_path) as f:
