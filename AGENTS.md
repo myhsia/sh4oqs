@@ -4,7 +4,7 @@ Standalone **surface-hopping** reference dynamics for the spin-boson model: FSSH
 but disabled) with a classical bath sampled per mode, for the harmonic/anharmonic and
 linear/quadratic coupling cases.  The companion repositories are the private memory-kernel code
 (`mkct4oqs`) and the public `dmrg4oqs` (HEOM / MPS-tDMRG; the shared
-`source/config/` and `source/library/{qutils,fsutils,pltools,extended_deom}.py`).
+`source/config/` and `source/library/{qutils,fsutils,pltools,extended_deom,mre,corrmat}.py`).
 
 Scientific background and methodology are described in
 [`.opencode/skills/SKILL.md`](./.opencode/skills/SKILL.md); load the `surface-hopping` skill.
@@ -18,10 +18,13 @@ All code is under `source/`, the working directory for the drivers (paths such a
   `output/data/<prefix>/{pop,cohe,cohem,corr,xorr}_<method>_<case>.npz`.
 - `source/library/surface_hopping/` — `fssh.py` (fewest-switches) and `mash.py` (mapping approach),
   both enabled in `METHODS`, plus `validation.py` (regression suite).
+- `source/sh_error.py` — accuracy of the surface-hopping runs against HEOM (the six-curve metric
+  of `library/mre.py`): the reference and the MKCT curves are rebuilt from the canonical
+  `corrmat_heom.npz` / `corrmat_mkct.npz` with `library/corrmat.py`; writes `output/sh_error.{json,md}`.
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` conda environment.
 
 Shared pieces (`source/reference.py`, `source/config/`, and
-`source/library/{qutils,fsutils,pltools,extended_deom}.py`) are **copies** of the canonical files in the private
+`source/library/{qutils,fsutils,pltools,extended_deom,mre,corrmat}.py`) are **copies** of the canonical files in the private
 `mkct4oqs` repository, so a public clone and the CI work without a token.
 
 > **Sync reminder.**  After changing any of them in `mkct4oqs`, run

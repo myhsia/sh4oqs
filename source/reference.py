@@ -1,4 +1,18 @@
 # %%
+"""Reference solver: the basis correlation matrix of the harmonic reference.
+
+Linear coupling is propagated with qutip's ``HEOMSolver`` and polynomial
+(quadratic) coupling with the extended DEOM; both supply the quantum-harmonic
+reference used by the MKCT, DMRG and surface-hopping comparisons.  Only the
+correlation matrix is stored (``corrmat_heom.npz``, one ``(t, C)`` pair under
+``qhm``, ``C(0) = I``); its contraction to the five reported observables is
+done by the analysis scripts from ``library/corrmat.py``.
+
+Usage (from ``./source``)::
+
+    python reference.py               # every prefix of RUNLIST
+    python reference.py -prefix A-base_line
+"""
 # 1. Requirements
 import mpmath as mp
 mp.mp.dps = 31
@@ -10,29 +24,13 @@ from qutip.core.environment import OhmicEnvironment
 from qutip.solver.heom import HEOMSolver
 sys.pycache_prefix = os.path.abspath("./output/pycache")
 from extended_deom import ExtendedDEOMSolver, build_ohmic_bath
-from fsutils import load_config, save_time, save_group
-from qutils import spin_boson, basis, Pauli, qubit, parse_coeffs
+from fsutils import load_config, save_group
+from qutils import spin_boson, parse_coeffs
+from corrmat import BASIS, basis_list
 from pltools import parse_xlims
 
 
 # 2. Common Configurations
-## 2.1 Basis operators
-X, Y       = Qobj(Pauli("x")), Qobj(Pauli("y"))
-P_list     = [Qobj(basis(2, 0, kind = "ketbra")),
-              Qobj(basis(2, 1, kind = "ketbra"))]
-# Basis: |0><0|, |0><1|, |1><0|, |1><1|
-basis_list = np.array([basis(2, (0, 0)), basis(2, (0, 1)),
-                       basis(2, (1, 0)), basis(2, (1, 1))])
-BASIS      = ("00", "01", "10", "11")   # labels of basis_list, both axes of C_ij
-## 2.2 Initial system density matrices
-rho0  = {"0": Qobj(basis(2, 0, kind = "ketbra")),
-         "x": Qobj(qubit(theta = 2 * np.pi/3, kind = "ketbra"))}
-## 2.3 Measured operator A and time-zero state Brho0  ->  <A(t) B(0)>
-A     = {"pop": P_list, "+": Qobj(Pauli("+")), "-": Qobj(Pauli("-")),
-         "corr": X,     "xorr": X}
-Brho0 = {"pop": rho0["0"], "+": rho0["0"], "-": rho0["0"],
-         "corr": X @ rho0["0"], "xorr": Y @ rho0["x"]}
-
 def corrmat_ref(RefMats, tlist):
     """Basis correlation matrix ``C_ij(t)`` of the quantum harmonic case.
 
@@ -141,47 +139,11 @@ def main(prefix: str, corrmat: bool = False):
         RefMats = HEOMSolver(
             Qobj(Hs), (approx_env, Qobj(V)),
             max_depth = Lmax, options = default_options)
-    ## 4.2 Propagate
-    #### - Basis correlation matrix (qhm) only: the four basis-unit initial
-    ####   states; the other observables are left untouched.
-    if corrmat:
-        C = corrmat_ref(RefMats, tlist * tscale)
-        save_group({"qhm": (tlist, C)}, "./output/data/" + prefix,
-                   "corrmat_heom.npz", identifier = r"$\mathcal{C}(t)$",
-                   branch = BASIS, component = BASIS, compress = True)
-        return
-    #### - To calculate <A(t) B(0)>, we evolve Brho0 forward in time and
-    ####   measure A at each time step
-    # Auto-correlation <Sx(t)Sx(0)>: evolve Brho0["corr"]
-    heom_corr = RefMats.run(Brho0["corr"], tlist * tscale)
-    C_mu = expect(A["corr"], heom_corr.states)
-    C_mu /= C_mu[0]
-    # Cross-correlation <Sx(t)Sy(0)>: evolve Brho0["xorr"]
-    heom_xorr = RefMats.run(Brho0["xorr"], tlist * tscale)
-    C_x = expect(A["xorr"], heom_xorr.states)
-    # Single-time quantities: evolve Brho0["+"]
-    res_heom = RefMats.run(Brho0["+"], tlist * tscale)
-    P0_t   = expect(A["pop"][0], res_heom.states)
-    P1_t   = expect(A["pop"][1], res_heom.states)
-    cohe_p = expect(A["+"], res_heom.states)
-    cohe_m = expect(A["-"], res_heom.states)
-
-    # 5. Save to npz
-    save_time(tlist, np.column_stack((P0_t, P1_t)).real,
-              "./output/data/" + prefix, "pop_heom.npz",
-              identifier = "P", compress = True)
-    save_time(tlist, cohe_p,
-              "./output/data/" + prefix, "cohe_heom.npz",
-              identifier = "S+", compress = True)
-    save_time(tlist, cohe_m,
-              "./output/data/" + prefix, "cohem_heom.npz",
-              identifier = "S-", compress = True)
-    save_time(tlist, C_mu,
-              "./output/data/" + prefix, "corr_heom.npz",
-              identifier = "⟨μ(t)μ(0)⟩", compress = True)
-    save_time(tlist, C_x,
-              "./output/data/" + prefix, "xorr_heom.npz",
-              identifier = "⟨Sx(t)Sy(0)⟩", compress = True)
+    ## 4.2 Propagate the four basis-unit initial states phi_k^dagger
+    C = corrmat_ref(RefMats, tlist * tscale)
+    save_group({"qhm": (tlist, C)}, "./output/data/" + prefix,
+               "corrmat_heom.npz", identifier = r"$\mathcal{C}(t)$",
+               branch = BASIS, component = BASIS, compress = True)
 
 
 RUNLIST  = [
@@ -201,12 +163,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description = "HEOM/extDEOM reference solver.")
     ap.add_argument("-prefix", type = str, default = None,
                     help = "single config (default: every prefix of RUNLIST)")
-    ap.add_argument("-corrmat", action = "store_true",
-                    help = "save only the qhm basis correlation matrix "
-                           "(corrmat_heom.npz), leaving the other "
-                           "reference files untouched")
     args = ap.parse_args()
     for prefix in ([args.prefix] if args.prefix else RUNLIST):
-        main(prefix = prefix, corrmat = args.corrmat)
+        main(prefix = prefix)
 
 # %%
