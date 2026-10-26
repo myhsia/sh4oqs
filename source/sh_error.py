@@ -21,7 +21,7 @@ Usage::
 
     python sh_error.py                       # RUNLIST x all methods
     python sh_error.py --methods mash fssh
-    python sh_error.py --configs A_base_line --labels "" best maxA
+    python sh_error.py --configs A_base_line --labels "" base all
 """
 # %%
 # 1. Requirements
@@ -51,8 +51,7 @@ RUNLIST = [
 CASES   = ["qhm", "qah", "chm", "cah"]
 METHODS = ["mkct", "mash", "fssh", "ehrenfest", "lsc"]
 # Suffixes of labelled runs (the parameter sweep of the reference scenario).
-LABELS  = ["", "base", "wf8", "wf14", "N400", "N800", "dt0025", "traj160k",
-           "best", "maxA", "maxB"]
+LABELS  = ["", "base", "N400", "N800", "wf8", "wf14", "traj160k", "all"]
 
 # The HEOM and MKCT references live in the canonical mkct4oqs checkout.
 REF  = os.environ.get("SH_REF_DATA", "../../mkct4oqs/source/output/data")
