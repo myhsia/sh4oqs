@@ -35,9 +35,11 @@ distribution with the quantum thermal variance, a **classical** case from the cl
   the same `n_jobs` slice parallelization.
 - The drivers use numba-jitted kernels; the trajectory loop is the expensive part.
 
-`sh.py` runs the selected methods and cases for each config in its `RUNLIST` and writes
-`output/data/<prefix>/{pop,cohe,cohem,corr,xorr}_<method>_<case>.npz` (the shared `save_time`
-schema, `<method>` = `fssh` or `mash`).
+`sh.py` runs the selected methods and cases for each config in its `RUNLIST` and writes the basis
+correlation matrix `output/data/<prefix>/corrmat_<method>_<case>.npz` (`save_group`, key = case,
+`C(0) = I`, `<method>` = `fssh` or `mash`).  `sh_merge.py` groups the four cases into
+`corrmat_<method>.npz`; the five observables are contractions of `C`
+(`library/corrmat.py`), and `sh_error.py` scores the 32 real series of `C` against HEOM.
 
 ## Conventions
 

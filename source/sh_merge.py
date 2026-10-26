@@ -1,17 +1,20 @@
 # %%
-"""Group the per-case surface-hopping files into one archive per quantity.
+"""Group the per-case surface-hopping correlation matrices into one archive.
 
 Each CI job computes one ``(config, case)``, so the raw output is
-``<quantity>_<method>_<case>.npz`` (one file per case, unique per job: no
-concurrent writes).  This script groups the four cases into
-``<quantity>_<method>.npz`` with ``fsutils.save_group``, the same layout as
-``<quantity>_mkct.npz`` (``t_<case>`` plus ``<case>``, with ``component`` for
-the populations and ``branch`` for the coherence).
+``corrmat_<method>_<case>.npz`` (one file per case, unique per job: no
+concurrent writes; the archive holds ``t_<case>`` and the ``(nt, 4, 4)``
+matrix under ``<case>``).  This script groups the four cases into
+``corrmat_<method>.npz`` with ``fsutils.save_group``, the same layout as
+``corrmat_mkct.npz`` and ``corrmat_heom.npz``.
 
-When several independent seeds were run per case (``..._<case>_s0.npz``,
-``_s1``, ...), their observables are averaged first: every file is already an
-ensemble average, so the mean of equal-size chunks is the average over the
-union.
+When several independent seeds were run per case
+(``corrmat_<method>_<case>_s0.npz``, ``_s1``, ...), their matrices are
+averaged first: every file is already an ensemble average, so the mean of
+equal-size chunks is the average over the union.
+
+Labelled parameter-sweep runs (``corrmat_<method>_<case>_<label>.npz``) stay
+per case and are read directly by the analysis; they are not merged.
 
 Usage::
 
@@ -20,25 +23,23 @@ Usage::
     python sh_merge.py --methods mash fssh
 """
 # %%
-import argparse, glob, os, re, sys
+import argparse, glob, os, sys
 import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), "./library"))
 sys.pycache_prefix = os.path.abspath("./output/pycache")
-from fsutils import load_npz, save_group
+from fsutils import load_group, save_group
+from corrmat import BASIS
 
 CASES = ("qhm", "qah", "chm", "cah")
-QUANTITIES = ("pop", "cohe", "cohem", "corr", "xorr")
-META = {"pop": dict(component = ("P0", "P1")),
-        "cohe": dict(branch = ("+", "-")),
-        "cohem": dict(branch = ("+", "-"))}
+METHODS = ["fssh", "mash", "ehrenfest", "lsc"]
 
 
-def _seed_files(directory, quantity, method, case, label=""):
+def _seed_files(directory, method, case):
     """All files of one case, one per seed (or a single one)."""
-    stem = f"{quantity}_{method}" + (f"_{label}" if label else "") + f"_{case}"
+    stem = f"corrmat_{method}_{case}"
     # Only the plain file and explicit seeds ``_s0``/``_s1``/...: the labelled
     # sweep files (``_base``, ``_maxA``, ...) belong to a different setting and
-    # may have a different time grid.
+    # are not merged.
     files = []
     plain = os.path.join(directory, stem + ".npz")
     if os.path.exists(plain):
@@ -47,65 +48,42 @@ def _seed_files(directory, quantity, method, case, label=""):
     return files
 
 
-def _load_avg(files):
-    """Average the ``(t, y)`` of several seed files (equal weights)."""
-    ts, ys = zip(*(load_npz(f) for f in files))
-    t = ts[0]
-    y = sum(ys) / len(ys)
-    return t, y
+def _load_avg(files, case):
+    """Average the ``(t, C)`` matrices of several seed files."""
+    pairs = [load_group(f)[0][case] for f in files]
+    t = pairs[0][0]
+    C = sum(C for _, C in pairs) / len(pairs)
+    return t, C
 
 
 def merge_config(prefix, methods, labels, root, clean=False):
     directory = os.path.join(root, prefix)
     made = []
     for method in methods:
-        for label in labels:
-            series = {q: {} for q in QUANTITIES}
+        series = {}
+        for case in CASES:
+            files = _seed_files(directory, method, case)
+            if files:
+                series[case] = _load_avg(files, case)
+        if len(series) != len(CASES):
+            continue
+        name = f"corrmat_{method}.npz"
+        save_group(series, directory, name, identifier = r"$\mathcal{C}(t)$",
+                   branch = BASIS, component = BASIS, compress = True)
+        made.append(name)
+        if clean:
             for case in CASES:
-                for q in QUANTITIES:
-                    files = _seed_files(directory, q, method, case, label)
-                    if not files:
-                        continue
-                    if q == "cohem":
-                        continue          # coherence is handled by "cohe"
-                    if q == "cohe":
-                        # The two branches live in separate files: stack them
-                        # as (2, nt) with branch = ("+", "-"), like MKCT.
-                        fs_p = _seed_files(directory, "cohe", method, case, label)
-                        fs_m = _seed_files(directory, "cohem", method, case, label)
-                        if not fs_p:
-                            continue
-                        t, cp = _load_avg(fs_p)
-                        if fs_m:
-                            _, cm = _load_avg(fs_m)
-                            series[q][case] = (t, np.stack([cp, cm]))
-                        else:
-                            series[q][case] = (t, np.stack([cp, cp * 0]))
-                        continue
-                    t, y = _load_avg(files)
-                    series[q][case] = (t, y)
-            if clean and label == "":
-                for case in CASES:
-                    for q in QUANTITIES:
-                        for f in _seed_files(directory, q, method, case, label):
-                            os.remove(f)
-            for q in ("pop", "cohe", "corr", "xorr"):
-                if len(series[q]) != len(CASES):
-                    continue
-                tag = method + (f"_{label}" if label else "")
-                name = f"{q}_{tag}.npz"
-                save_group(series[q], directory, name, identifier = q,
-                           **META.get(q, {}))
-                made.append(name)
+                for f in _seed_files(directory, method, case):
+                    os.remove(f)
     return made
 
 
 def main():
     ap = argparse.ArgumentParser(description = __doc__.splitlines()[0])
     ap.add_argument("--configs", nargs = "*", default = None)
-    ap.add_argument("--methods", nargs = "*",
-                    default = ["fssh", "mash", "ehrenfest", "lsc"])
-    ap.add_argument("--labels", nargs = "*", default = [""])
+    ap.add_argument("--methods", nargs = "*", default = METHODS)
+    ap.add_argument("--labels", nargs = "*", default = [""],
+                    help = "kept for compatibility; labelled runs are not merged")
     ap.add_argument("--root", default = "./output/data")
     ap.add_argument("--clean", action = "store_true",
                     help = "delete the per-case files once merged")

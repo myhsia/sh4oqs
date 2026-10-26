@@ -25,6 +25,7 @@ from numba import njit
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from qutils import sample_bath, Pauli, basis, qubit
+from corrmat import observables
 from surface_hopping.fssh import _rescale_momentum, _sizes, _spawn_seeds
 
 
@@ -554,28 +555,59 @@ def _standard_pairs():
     }
 
 
+def _corrmat_pairs():
+    """The 16 (time-zero, measured) pairs of the basis correlation matrix.
+
+    ``C[:, j, k] = Tr[phi_j U phi_k^dagger (x) rho_B U^dagger]``: the
+    time-zero operator is ``phi_k^dagger`` (the off-diagonal ones are
+    non-Hermitian and split into eigenstates by ``run_correlations``) and the
+    measured one ``phi_j``, in the Liouville basis
+    ``|0><0|, |0><1|, |1><0|, |1><1|``.
+    """
+    phi = [basis(2, n) for n in ((0, 0), (0, 1), (1, 0), (1, 1))]
+    return [(phi[k].conj().T, phi[j]) for k in range(4) for j in range(4)]
+
+
+def _corrmat_from_series(Cs):
+    """Assemble ``(nT, 4, 4)`` from the 16 series (k-major pair order)."""
+    C = np.zeros((len(Cs[0]), 4, 4), dtype = np.complex128)
+    for idx, (k, j) in enumerate((k, j) for k in range(4) for j in range(4)):
+        C[:, j, k] = Cs[idx]
+    return C
+
+
+def run_corrmat(epsilon, Delta, omega, c, beta, tlist, quantum=True, anharmon=0.0,
+                n_traj=4000, rng=None, seed=None, model=None, n_jobs=1,
+                meanfield=False):
+    """Basis correlation matrix ``C(t)`` (``C(0) = I``) from one MASH ensemble.
+
+    The 16 elements are the linear-response pairs ``(phi_k^dagger, phi_j)``;
+    ``run_correlations`` splits the non-Hermitian time-zero operators into
+    eigenstates, so the ensemble cost matches the old five observables.
+    """
+    Cs = run_correlations(epsilon, Delta, omega, c, beta, tlist,
+                          _corrmat_pairs(), quantum=quantum, anharmon=anharmon,
+                          n_traj=n_traj, rng=rng, seed=seed, model=model,
+                          n_jobs=n_jobs, meanfield=meanfield)
+    return _corrmat_from_series(Cs)
+
+
 def run_observables(epsilon, Delta, omega, c, beta, tlist,
                     quantum=True, anharmon=0.0, n_traj=4000, rng=None, seed=None,
                     model=None, n_jobs=1, meanfield=False):
-    """All MKCT observables in one MASH ensemble.
+    """All MKCT observables, contracted from the basis correlation matrix.
 
-    ``model`` selects the adiabatic model (default LSBM); see
-    ``mash_trajectory``.
+    Returns ``pop`` (nT,2 real), ``cohe_p``, ``cohe_m``, ``Cmu`` (normalised)
+    and ``Cx`` (nT complex), exactly as before, via ``corrmat.observables``.
     """
-    pairs = _standard_pairs()
-    keys = ["pop0", "pop1", "cohe_p", "cohe_m", "Cmu", "Cx"]
-    Cs = run_correlations(epsilon, Delta, omega, c, beta, tlist, [pairs[k] for k in keys],
-                          quantum=quantum, anharmon=anharmon,
-                          n_traj=n_traj, rng=rng, seed=seed, model=model,
-                          n_jobs=n_jobs, meanfield=meanfield)
-    C = dict(zip(keys, Cs))
-    Cmu = C["Cmu"]
-    if Cmu[0] != 0:
-        Cmu = Cmu / Cmu[0]
+    obs = observables(run_corrmat(
+        epsilon, Delta, omega, c, beta, tlist, quantum=quantum,
+        anharmon=anharmon, n_traj=n_traj, rng=rng, seed=seed, model=model,
+        n_jobs=n_jobs, meanfield=meanfield))
     return {
-        "pop": np.column_stack((C["pop0"].real, C["pop1"].real)),
-        "cohe_p": C["cohe_p"],
-        "cohe_m": C["cohe_m"],
-        "Cmu": Cmu,
-        "Cx": C["Cx"],
+        "pop": obs["pop"].real,
+        "cohe_p": obs["cohe+"],
+        "cohe_m": obs["cohe-"],
+        "Cmu": obs["corr"],
+        "Cx": obs["xorr"],
     }

@@ -469,31 +469,43 @@ def run_correlations(epsilon, Delta, omega, c, beta, tlist, pairs,
     return [acc[ip] for ip in range(len(pairs))]
 
 
+def run_corrmat(epsilon, Delta, omega, c, beta, tlist, quantum=True,
+                anharmon=0.0, n_traj=4000, chunk=100, rng=None, seed=None,
+                model=None, n_jobs=1, deco=0.0, gamma=0.0, meanfield=False):
+    """Basis correlation matrix ``C(t)`` (``C(0) = I``) from one FSSH ensemble.
+
+    The 16 elements are the linear-response pairs ``(phi_k^dagger, phi_j)``;
+    the non-Hermitian time-zero operators are split into signed eigenstates by
+    ``run_correlations``, so the ensemble cost matches the old observables.
+    """
+    from surface_hopping.mash import _corrmat_pairs, _corrmat_from_series
+    Cs = run_correlations(epsilon, Delta, omega, c, beta, tlist,
+                          _corrmat_pairs(), quantum=quantum, anharmon=anharmon,
+                          n_traj=n_traj, chunk=chunk, rng=rng, seed=seed,
+                          model=model, n_jobs=n_jobs, deco=deco, gamma=gamma,
+                          meanfield=meanfield)
+    return _corrmat_from_series(Cs)
+
+
 def run_observables(epsilon, Delta, omega, c, beta, tlist,
                     quantum=True, anharmon=0.0, n_traj=4000, chunk=100,
                     rng=None, seed=None, model=None, n_jobs=1, deco=0.0,
                     gamma=0.0, meanfield=False):
-    """All MKCT observables via FSSH, mirroring ``mash.run_observables``.
+    """All MKCT observables, contracted from the basis correlation matrix.
 
-    Returns a dict with ``pop`` (nT,2 real), ``cohe_p``, ``cohe_m``, ``Cmu``,
-    ``Cx`` (nT complex).  ``Cmu`` is normalised so ``Cmu[0] == 1``.
+    Returns a dict with ``pop`` (nT,2 real), ``cohe_p``, ``cohe_m``, ``Cmu``
+    (normalised) and ``Cx`` (nT complex), as before, via ``corrmat.observables``.
     """
-    from surface_hopping.mash import _standard_pairs
-    pairs = _standard_pairs()
-    keys = ["pop0", "pop1", "cohe_p", "cohe_m", "Cmu", "Cx"]
-    Cs = run_correlations(epsilon, Delta, omega, c, beta, tlist, [pairs[k] for k in keys],
-                          quantum=quantum, anharmon=anharmon, n_traj=n_traj,
-                          chunk=chunk, rng=rng, seed=seed, model=model,
-                          n_jobs=n_jobs, deco=deco, gamma=gamma,
-                          meanfield=meanfield)
-    C = dict(zip(keys, Cs))
-    Cmu = C["Cmu"]
-    if Cmu[0] != 0:
-        Cmu = Cmu / Cmu[0]
+    from corrmat import observables
+    obs = observables(run_corrmat(
+        epsilon, Delta, omega, c, beta, tlist, quantum=quantum,
+        anharmon=anharmon, n_traj=n_traj, chunk=chunk, rng=rng, seed=seed,
+        model=model, n_jobs=n_jobs, deco=deco, gamma=gamma,
+        meanfield=meanfield))
     return {
-        "pop": np.column_stack((C["pop0"].real, C["pop1"].real)),
-        "cohe_p": C["cohe_p"],
-        "cohe_m": C["cohe_m"],
-        "Cmu": Cmu,
-        "Cx": C["Cx"],
+        "pop": obs["pop"].real,
+        "cohe_p": obs["cohe+"],
+        "cohe_m": obs["cohe-"],
+        "Cmu": obs["corr"],
+        "Cx": obs["xorr"],
     }
