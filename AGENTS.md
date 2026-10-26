@@ -52,6 +52,11 @@ Shared pieces (`source/reference.py`, `source/config/`, and
   high-energy trajectory near the Verlet stability limit can diverge (`w_max_factor = 10`
   gives `w_max = 120` and `dt = 0.00125` for the fast-bath scenario).
 - Classical nuclei: a cross-check, reliable mainly for slow baths and high temperature.
+- **Parameter sweep** (A-base_line, `mash`, documented labels, `dt = 0.01`): `base`
+  (N=200, 40k trajectories, `wmax_factor` 10), `N400`/`N800`, `wf8`/`wf14`, `traj160k`
+  (160k trajectories), and `all` (N=800, cut 14, 160k).  Each label is one `data.yaml`
+  dispatch with `-label`; the per-case `corrmat_mash_<case>_<label>.npz` files stay unmerged
+  and feed `sh_error`/`FIG7`.
 - Coding style: see the maintainer's shared `repo-rules` skill.
 
 ## Workflows
