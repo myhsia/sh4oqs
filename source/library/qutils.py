@@ -4,11 +4,10 @@ This is the shared library for the well-known quantum primitives used across the
 sub-libraries (``surface_hopping``, ``dmrg``, ``mkct_pade``, ``moment``):
 Pauli/basis operators, bosonic ladder operators, the spin-boson model, the Ohmic
 spectral density and its Gauss-Legendre discretization, and thermal statistics.
-It depends only on numpy/numba (mpmath is imported lazily by :func:`eta0`), so it
+It depends only on numpy (mpmath is imported lazily by :func:`eta0`), so it
 never imports a sub-library.
 """
 import numpy as np
-from numba import njit
 from typing import Union, Tuple, Literal
 
 
@@ -345,7 +344,6 @@ def eta0(J, beta, quantum=True, wmax=np.inf):
 # ===========================================================================
 # Observables
 # ===========================================================================
-@njit
 def get_expval_ABrho0(C: np.ndarray,
                       A: np.ndarray,
                       B_rho0: np.ndarray,
@@ -356,26 +354,19 @@ def get_expval_ABrho0(C: np.ndarray,
     A:                (dim, dim)  Operator A in Hilbert space
     B_rho0:           (dim, dim)  Operator B·ρ(0) in Hilbert space
     basis_list: (dim2, dim, dim)  Liouville basis |i><j|
+
+    The Liouville coefficients are ``aa_i = Tr[A φ_i^dagger]`` and
+    ``bb_i = Tr[φ_i Bρ(0)]``, and the result is ``aa @ C[t] @ bb`` for every
+    time step.  Pure numpy (no ``np.dot`` under numba), so trajectory
+    environments need no BLAS backend.
     """
+    C = np.asarray(C)
     dim2 = C.shape[1]
     assert dim2 == len(basis_list), \
         "The dimension of C and basis_list should match."
-    aa = np.zeros(dim2, dtype = np.complex128)
-    bb = np.zeros(dim2, dtype = np.complex128)
-    # project A and B_rho0 onto Liouville basis
-    for i in range(dim2):
-        # A wrong formula for Pupulation/autocorr/xingcorr at first
-        # aa[i] = np.trace(np.dot(A, basis_list[i]))
-        # bb[i] = np.trace(np.dot(B_rho0, basis_list[i].T.conj()))
-        aa[i] = np.trace(np.dot(A, basis_list[i].T.conj()))
-        bb[i] = np.trace(np.dot(basis_list[i], B_rho0))
-    Nt = C.shape[0]
-    res = np.zeros(Nt, dtype = np.complex128)
-    for t_idx in range(Nt):
-        for j in range(dim2):
-            for k in range(dim2):
-                res[t_idx] += aa[j] * C[t_idx, j, k] * bb[k]
-    return res
+    aa = np.einsum("mn,knm->k", A, basis_list.conj())
+    bb = np.einsum("kmn,nm->k", basis_list, B_rho0)
+    return np.einsum("j,tjk,k->t", aa, C, bb)
 
 
 def do_fft(t, y, zero_padding = 0, nblocks = 20, inversew: bool = False):
