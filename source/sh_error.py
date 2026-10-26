@@ -141,8 +141,9 @@ def main():
     with open(JSON, "w") as f:
         json.dump(raw, f, indent = 2, sort_keys = True)
     lines = ["# Surface-hopping accuracy against HEOM", "",
-             "Metric `(E/6)*100 %` over `[0, tf]` for "
-             "`{Re P0, Re P1, Re C_xx, Re C_xy, Im C_xx, Im C_xy}`.", "",
+             "Metric `(E/32)*100 %` over `[0, tf]` of the 32 real series of "
+             "the basis correlation matrix (16 elements, real and imaginary "
+             "parts, each weighted equally).", "",
              "| config | " + " | ".join(args.methods) + " |",
              "|---|" + "---:|" * len(args.methods)]
     for prefix in args.configs:
