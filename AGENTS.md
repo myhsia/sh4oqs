@@ -15,10 +15,10 @@ All code is under `source/`, the working directory for the drivers (paths such a
 `./output` are relative to it):
 
 - `source/sh.py` — driver: runs the selected methods/cases for a config and writes the
-  basis correlation matrix `output/data/<prefix>/corrmat_<method>_<case>.npz` (`save_group`,
+  basis correlation matrix `output/data/<prefix>/corrmat_<method>.npz (the observables are contracted from it at plot
+  time by `library/corrmat.observables`, so only the correlation matrix is stored)` (`save_group`,
   key = case, `branch = component = ("00","01","10","11")`, `C(0) = I`).  The five reported
   observables are contractions of it (`library/corrmat.py`).
-- `source/sh_merge.py` — merges the per-case matrices into `corrmat_<method>.npz`
   (seed files averaged first); labelled sweep runs stay per case.
 - `source/library/surface_hopping/` — `fssh.py` (fewest-switches) and `mash.py` (mapping approach),
   both enabled in `METHODS`, plus `validation.py` (regression suite).

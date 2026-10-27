@@ -132,9 +132,15 @@ def _compute(prefix: str, method: str = "mash", quantum: bool = True,
     return t, tag, case, C
 
 
-def _save(prefix: str, tag: str, case: str, t, C):
-    """Write the basis correlation matrix (only the parent ever writes)."""
-    save_group({case: (t, C)}, "./output/data/" + prefix,
+def _save(prefix: str, method: str, results: dict, label: str = ""):
+    """Write one archive per method, with one matrix per case.
+
+    Only the parent writes, and all four cases are in hand, so the file has the
+    same layout as ``corrmat_mkct.npz`` (``t_<case>`` plus ``<case>``) and no
+    post-processing merge is needed.
+    """
+    tag = method + (f"_{label}" if label else "")
+    save_group({c: results[c] for c in results}, "./output/data/" + prefix,
                "corrmat_" + tag + ".npz", identifier = r"$\mathcal{C}(t)$",
                branch = BASIS, component = BASIS, compress = True)
 
@@ -196,15 +202,18 @@ def run(prefix: str, methods = METHODS, cases = CASES, n_traj = None,
                 quantum = sampling == "quantum"
             specs.append((prefix, method, quantum, anharm, nt, N, wmax_factor,
                           dt, seed, n_inner, label))
+        # Collect every case in the parent, then write one archive per method.
+        results = {}
         if workers == 1 or len(specs) == 1:
             for spec in specs:
-                t, tag, case, C = _compute(*spec)
-                _save(prefix, tag, case, t, C)
+                t, _tag, case, C = _compute(*spec)
+                results[case] = (t, C)
         else:
             with ProcessPoolExecutor(max_workers = workers,
                     mp_context = multiprocessing.get_context("fork")) as pool:
-                for t, tag, case, C in pool.map(_case_job, specs):
-                    _save(prefix, tag, case, t, C)
+                for t, _tag, case, C in pool.map(_case_job, specs):
+                    results[case] = (t, C)
+        _save(prefix, method, results, label)
 
 
 if __name__ == "__main__":
