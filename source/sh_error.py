@@ -2,10 +2,9 @@
 """Accuracy of the surface-hopping references against HEOM.
 
 The metric is the shared correlation-matrix error of ``library/mre.py``: over
-the calculation window ``[0, tf]`` of each config, the relative ``L2`` error of
-the 32 real series of the basis correlation matrix (real and imaginary parts of
-its 16 elements), each weighted equally, against the HEOM reference matrix and
-averaged over ``mre.N_CORRMAT = 32``, reported in percent ``(E / 32) * 100``.
+the calculation window ``[0, tf]`` of each config, the global relative Frobenius
+error ``E = ||C - C'||_F / ||C'||_F`` of the basis correlation matrix (all 16
+complex elements) against the HEOM reference matrix, reported in percent.
 Only the window is compared: numerator and denominator both use the same slice.
 
 Every method stores ``corrmat_<method>_<case>.npz`` (merged into
@@ -88,7 +87,7 @@ def _ref(prefix):
 
 
 def error(prefix, method, case, label=""):
-    """Mean relative error (percent) over the 32 corrmat series; None if absent."""
+    """Relative Frobenius error (percent) of the corrmat; None if absent."""
     got = _corrmat(prefix, method, case, label)
     if got is None:
         return None
@@ -104,7 +103,7 @@ def error(prefix, method, case, label=""):
     th, Ch = _ref(prefix)
     hw = th <= tf * (1.0 + 1e-9)
     Cr = core._interp_mat(Ch[hw], th[hw], t)
-    return 100.0 * core._corrmat_error(C, Cr) / core.N_CORRMAT
+    return 100.0 * core._corrmat_error(C, Cr)
 
 
 def main():
@@ -140,9 +139,9 @@ def main():
     with open(JSON, "w") as f:
         json.dump(raw, f, indent = 2, sort_keys = True)
     lines = ["# Surface-hopping accuracy against HEOM", "",
-             "Metric `(E/32)*100 %` over `[0, tf]` of the 32 real series of "
-             "the basis correlation matrix (16 elements, real and imaginary "
-             "parts, each weighted equally).", "",
+             "Metric: the global relative Frobenius error "
+             "`E = ||C - C'||_F / ||C'||_F` over `[0, tf]` of the basis "
+             "correlation matrix (all 16 complex elements), in percent.", "",
              "| config | " + " | ".join(args.methods) + " |",
              "|---|" + "---:|" * len(args.methods)]
     for prefix in args.configs:

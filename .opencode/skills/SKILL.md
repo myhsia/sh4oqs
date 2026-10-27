@@ -39,7 +39,8 @@ distribution with the quantum thermal variance, a **classical** case from the cl
 correlation matrix `output/data/<prefix>/corrmat_<method>_<case>.npz` (`save_group`, key = case,
 `C(0) = I`, `<method>` = `fssh` or `mash`).  `sh_merge.py` groups the four cases into
 `corrmat_<method>.npz`; the five observables are contractions of `C`
-(`library/corrmat.py`), and `sh_error.py` scores the 32 real series of `C` against HEOM.
+(`library/corrmat.py`), and `sh_error.py` scores `C` against HEOM by the relative Frobenius
+error `||C - C'||_F / ||C'||_F`.
 
 ## Conventions
 

@@ -7,22 +7,18 @@ per-order scan, and the markdown/JSON reports.  The figure helpers
 For each config, scan all Padé orders (m, n) with m, n >= 2 and m + n <= N - 2
 (N = number of moments), reconstruct the basis correlation matrix ``C(t)`` with
 ``MKCT_solver.solve_pade``, and score it against the HEOM reference matrix with
-the relative L2 error
+the global relative Frobenius error
 
-    E(m, n) = sum_{ij} [ ||Re C_ij - Re C'_ij||_2 / ||Re C'_ij||_2
-                       + ||Im C_ij - Im C'_ij||_2 / ||Im C'_ij||_2 ]
+    E(m, n) = ||C - C'||_F / ||C'||_F,
 
-over the 32 real series of the 4x4 matrix (16 elements, real and imaginary
-parts), each weighted equally, on the full ``[0, tf]`` grid.  A series whose
-reference vanishes contributes zero (``_rel``).  Every pair is ranked, and the
-script writes
+the Frobenius norm running over the full ``[0, tf]`` grid and all 16 complex
+elements (so there is no per-element division by a vanishing series), reported
+in percent.  Every pair is ranked, and the script writes
 
     output/pade_scan_results.json   all pairs (infeasible pairs as ``null``),
                                     each row carrying its metric window ``tf``
     output/pade_scan.md             the worst-to-best ranking per config, above
                                     ``MAX_ERR_PCT`` (the JSON keeps all pairs)
-
-reporting the mean relative error ``(E / 32) * 100 %``.
 
 The driver (``source/pade_scan.py``) owns the run list, the solver settings and
 the output paths::
@@ -39,18 +35,11 @@ from fsutils import (load_config, load_group, ensure_dir, moments_filename,
 from pltools import parse_xlims
 
 
-N_CORRMAT = 32       # series of the correlation-matrix metric (16 x Re/Im)
 MAX_ERR_PCT = 1e3    # default cutoff for the markdown tables (%)
 
 
 def _rnorm(y):
     return float(np.sqrt(np.sum(np.abs(y) ** 2)))
-
-
-def _rel(a, b):
-    """Relative ``L2`` error ``||a - b||_2 / ||b||_2`` (0 if ``b`` vanishes)."""
-    den = _rnorm(b)
-    return _rnorm(a - b) / den if den > 0 else 0.0
 
 
 def _interp(yh, th, t):
@@ -68,21 +57,17 @@ def _interp_mat(C, th, t):
 
 
 def _corrmat_error(C, C_ref):
-    """Sum of the 32 relative errors of two ``(Nt, 4, 4)`` matrices."""
-    E = 0.0
-    for i in range(C.shape[1]):
-        for j in range(C.shape[2]):
-            E += _rel(C[:, i, j].real, C_ref[:, i, j].real)
-            E += _rel(C[:, i, j].imag, C_ref[:, i, j].imag)
-    return float(E)
+    """Global relative Frobenius error ``||C - C_ref||_F / ||C_ref||_F``."""
+    den = _rnorm(C_ref)
+    return _rnorm(C - C_ref) / den if den > 0 else 0.0
 
 
 def scan_config(prefix, dt=1e-2, tf_factor=20.0, solve=None,
                 data_dir="./output/data", method="block_sp"):
     """Return ``[{'m','n','Nmax','E','tf'}]`` over all admissible Padé orders.
 
-    ``E`` is the sum of the 32 relative errors of the correlation-matrix
-    elements (``_corrmat_error``); ``solve`` holds the ``solve_pade`` keyword
+    ``E`` is the global relative Frobenius error in percent
+    (``_corrmat_error``); ``solve`` holds the ``solve_pade`` keyword
     arguments other than ``tf``/``tfout``/``dt``.
     """
     # Imported lazily: the error helpers also serve repositories that do
@@ -116,7 +101,7 @@ def scan_config(prefix, dt=1e-2, tf_factor=20.0, solve=None,
                     t, Ct = solver.solve_pade(
                         tf=tf_factor * tf, tfout=tf, dt=dt, kernel_order=1,
                         pade_order=(m, n), **solve)
-                E = _corrmat_error(Ct, _interp_mat(Chw, thw, t))
+                E = 100.0 * _corrmat_error(Ct, _interp_mat(Chw, thw, t))
                 if not np.isfinite(E):
                     E = np.inf
             except Exception:
@@ -130,22 +115,21 @@ def scan_config(prefix, dt=1e-2, tf_factor=20.0, solve=None,
     return res
 
 
-def write_markdown(raw, path, n_obs=N_CORRMAT, max_pct=MAX_ERR_PCT, runlist=None):
+def write_markdown(raw, path, max_pct=MAX_ERR_PCT, runlist=None):
     """Worst-to-best ranking of the feasible pairs, above the error cutoff."""
     runlist = list(runlist if runlist is not None else raw)
     lines = [
         "# Pade-order scan (QHM vs HEOM)", "",
-        "Error metric: `E = sum_{ij} ||C_ij - C'_ij||_2 / ||C'_ij||_2` over the "
-        "32 real series of the 4x4 basis correlation matrix (real and imaginary "
-        "parts of each element) and the full `[0, tf]` (the config's window "
-        "from `xlims`, listed per config), QHM vs HEOM; the tables report the "
-        f"**mean relative error** `(E/{n_obs})*100%`, each series weighted "
-        "equally.",
+        "Error metric: the global relative Frobenius error "
+        "`E = ||C - C'||_F / ||C'||_F` over the full `[0, tf]` (the config's "
+        "window from `xlims`, listed per config) and all 16 complex elements "
+        "of the 4x4 basis correlation matrix, QHM vs HEOM; the tables report "
+        "`100*E` in percent.",
         "`Nmax = m + n + 2`; pairs satisfy `m, n >= 2` and singular/infeasible "
-        f"pairs are excluded. Pairs with a mean error above `{max_pct:g}%` are "
+        f"pairs are excluded. Pairs with an error above `{max_pct:g}%` are "
         "omitted from the tables (the JSON keeps them); each config lists the "
         "remaining pairs ordered from **largest (#1)** to **smallest** error.", "",
-        "| config | best (m, n) | Nmax | mean error (%) | tf | feasible pairs |",
+        "| config | best (m, n) | Nmax | error (%) | tf | feasible pairs |",
         "|---|---|---:|---:|---:|---:|",
     ]
     for prefix in runlist:
@@ -153,17 +137,17 @@ def write_markdown(raw, path, n_obs=N_CORRMAT, max_pct=MAX_ERR_PCT, runlist=None
                       key=lambda r: r["E"])
         b = feas[0]
         lines.append(f"| {prefix} | ({b['m']}, {b['n']}) | {b['Nmax']} | "
-                     f"{b['E'] / n_obs * 100:.4g} | {b['tf']:g} | {len(feas)} |")
+                     f"{b['E']:.4g} | {b['tf']:g} | {len(feas)} |")
     for prefix in runlist:
         feas = sorted([r for r in raw[prefix] if np.isfinite(r["E"])],
                       key=lambda r: r["E"])
-        shown = [r for r in feas if r["E"] / n_obs * 100 <= max_pct]
+        shown = [r for r in feas if r["E"] <= max_pct]
         lines += ["", f"## {prefix} ({len(shown)} of {len(feas)} shown)", "",
-                  "| # | m | n | Nmax | mean error (%) |",
+                  "| # | m | n | Nmax | error (%) |",
                   "|---:|---:|---:|---:|---:|"]
         for i, r in enumerate(reversed(shown), start=1):
             lines.append(f"| {i} | {r['m']} | {r['n']} | {r['Nmax']} | "
-                         f"{r['E'] / n_obs * 100:.4g} |")
+                         f"{r['E']:.4g} |")
     ensure_dir(os.path.dirname(path))
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -192,7 +176,7 @@ def _from_jsonable(raw):
     return raw
 
 
-def run(runlist, json_path, md_path, *, n_obs=N_CORRMAT,
+def run(runlist, json_path, md_path, *,
         max_pct=MAX_ERR_PCT, rescan=False, **scan_kwargs):
     """Scan ``runlist`` (or load the JSON cache), then write both artifacts."""
     ensure_dir(os.path.dirname(json_path))
@@ -206,5 +190,5 @@ def run(runlist, json_path, md_path, *, n_obs=N_CORRMAT,
     with open(json_path, "w") as f:
         json.dump(_to_jsonable(raw), f, indent=2)
     print("WROTE", json_path, flush=True)
-    write_markdown(raw, md_path, n_obs=n_obs, max_pct=max_pct, runlist=runlist)
+    write_markdown(raw, md_path, max_pct=max_pct, runlist=runlist)
     return raw

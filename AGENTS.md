@@ -22,8 +22,8 @@ All code is under `source/`, the working directory for the drivers (paths such a
   (seed files averaged first); labelled sweep runs stay per case.
 - `source/library/surface_hopping/` — `fssh.py` (fewest-switches) and `mash.py` (mapping approach),
   both enabled in `METHODS`, plus `validation.py` (regression suite).
-- `source/sh_error.py` — accuracy of the surface-hopping runs against HEOM, with the 32-series
-  correlation-matrix metric of `library/mre.py` (`E/32`, every element equally weighted); the
+- `source/sh_error.py` — accuracy of the surface-hopping runs against HEOM, with the relative
+  Frobenius metric of `library/mre.py` (`||C - C'||_F / ||C'||_F`); the
   reference and the MKCT matrices come from the canonical `corrmat_heom.npz` /
   `corrmat_mkct.npz`; writes `output/sh_error.{json,md}`.
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` conda environment.

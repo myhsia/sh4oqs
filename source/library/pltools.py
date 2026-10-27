@@ -63,35 +63,34 @@ class GridPlt:
     ERROR_DECADES = 3.0
 
     @staticmethod
-    def _error_matrix(rows, n_obs: int):
-        """Dense ``[n, m]`` mean-error array (%) and its ``m``/``n`` maxima.
+    def _error_matrix(rows):
+        """Dense ``[n, m]`` error array (%) and its ``m``/``n`` maxima.
 
-        ``rows`` are the scan records (``m``, ``n``, ``E``); the mean error is
-        ``E / n_obs`` in percent.
+        ``rows`` are the scan records (``m``, ``n``, ``E`` in percent).
         """
         mmax = max(r["m"] for r in rows)
         nmax = max(r["n"] for r in rows)
         Er = np.full((nmax + 1, mmax + 1), np.nan)
         for r in rows:
             if np.isfinite(r["E"]):
-                Er[r["n"], r["m"]] = r["E"] / n_obs * 100.0
+                Er[r["n"], r["m"]] = r["E"]
         return Er, mmax, nmax
 
     @staticmethod
-    def log_range(rows, n_obs: int) -> tuple[float, float]:
-        """Colour limits ``(vmin, vmax)`` for the ``log10`` mean error (%).
+    def log_range(rows) -> tuple[float, float]:
+        """Colour limits ``(vmin, vmax)`` for the ``log10`` error (%).
 
         The window starts at the smallest finite error and spans
         ``ERROR_DECADES`` decades; larger (divergent) errors saturate at the
         top of the scale.
         """
-        vals = [np.log10(r["E"] / n_obs * 100.0) for r in rows
+        vals = [np.log10(r["E"]) for r in rows
                 if np.isfinite(r["E"]) and r["E"] > 0]
         vmin = float(min(vals))
         return vmin, vmin + GridPlt.ERROR_DECADES
 
     @staticmethod
-    def matrix_panel(ax, rows, vmin: float, vmax: float, n_obs: int,
+    def matrix_panel(ax, rows, vmin: float, vmax: float,
                      marks = (), xmax: float | None = None):
         """Draw the ``E(m, n)`` matrix on ``ax`` (the axes are the two orders).
 
@@ -100,7 +99,7 @@ class GridPlt:
         shared colour bar.  ``xmax`` overrides the right x-limit (to crop
         saturated columns).
         """
-        Er, mmax, nmax = GridPlt._error_matrix(rows, n_obs)
+        Er, mmax, nmax = GridPlt._error_matrix(rows)
         Z = np.clip(np.log10(Er), vmin, vmax)
         pcm = ax.pcolormesh(np.arange(mmax + 2) - 0.5, np.arange(nmax + 2) - 0.5,
                             Z, cmap = "viridis", vmin = vmin, vmax = vmax,
