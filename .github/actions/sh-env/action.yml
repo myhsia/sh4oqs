@@ -13,7 +13,7 @@ runs:
     - name: Get date
       id: date
       shell: bash
-      run: echo "week=$(date -u +%G%V)" >> "$GITHUB_OUTPUT"
+      run: echo "day=$(date -u +%G%m%d)" >> "$GITHUB_OUTPUT"
 
     - name: Cache conda packages
       uses: actions/cache@v6
@@ -45,8 +45,9 @@ runs:
       uses: actions/cache@v6
       with:
         path: ${{ env.CONDA }}/envs
-        # Refresh weekly so the (unpinned) pip dependencies stay close to latest.
-        key: conda-env-${{ runner.os }}-${{ steps.date.outputs.week }}-${{ hashFiles('source/environment.yaml', 'source/requirements.txt') }}
+        # Refresh daily so the (unpinned) pip dependencies and the interpreter
+        # patch stay at the newest version the channels provide.
+        key: conda-env-${{ runner.os }}-${{ steps.date.outputs.day }}-${{ hashFiles('source/environment.yaml', 'source/requirements.txt') }}
 
     - name: Configure conda
       if: inputs.build == 'true' && steps.envcache.outputs.cache-hit != 'true'

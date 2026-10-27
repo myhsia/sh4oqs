@@ -10,6 +10,9 @@ on:
     paths-ignore:
       - "**/*.md"
   workflow_dispatch:
+  schedule:
+    # Runs at 09:41 UTC daily.
+    - cron: '41 9 * * *'
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
