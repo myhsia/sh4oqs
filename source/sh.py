@@ -145,15 +145,6 @@ def _save(prefix: str, method: str, results: dict, label: str = ""):
                branch = BASIS, component = BASIS, compress = True)
 
 
-def main(prefix: str, method: str = "mash", quantum: bool = True,
-         anharm: bool = False, n_traj: int = 40000, N: int = 200,
-         wmax_factor: float = 10.0, dt: float = 0.01, seed: int = 0,
-         n_jobs: int = 1):
-    t, tag, case, C = _compute(prefix, method, quantum, anharm, n_traj, N,
-                               wmax_factor, dt, seed, n_jobs)
-    _save(prefix, tag, case, t, C)
-
-
 def _case_job(spec):
     """Worker entry point: one ``(prefix, method, case)`` specification."""
     t, tag, case, C = _compute(*spec)
