@@ -40,7 +40,6 @@ from pltools import parse_xlims
 
 
 N_CORRMAT = 32       # series of the correlation-matrix metric (16 x Re/Im)
-N_OBS = 6            # size of the six-observable metric (other repositories)
 MAX_ERR_PCT = 1e3    # default cutoff for the markdown tables (%)
 
 
