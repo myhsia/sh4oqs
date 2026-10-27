@@ -160,7 +160,10 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Pack the whole run
-        run: tar -czf sh-data.tar.gz -C dist .
+        run: |
+          ls -R dist | head -20
+          [ -n "$(ls -A dist)" ] || { echo "::error::no artifacts to pack"; exit 1; }
+          tar -czf sh-data.tar.gz -C dist .
       - uses: actions/upload-artifact@v7
         with:
           name: sh-data
