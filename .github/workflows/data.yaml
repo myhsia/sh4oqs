@@ -160,10 +160,11 @@ jobs:
           pattern: sh-*-*-*
           path: dist
           merge-multiple: true
+      - uses: actions/checkout@v7
       - name: Merge the per-case correlation matrices
         run: |
           python3 -m pip install --quiet numpy
-          python ../source/corrmat_merge.py --root dist || true
+          python source/corrmat_merge.py --root dist
       - name: Pack the whole run
         run: tar -czf sh-data.tar.gz -C dist .
       - uses: actions/upload-artifact@v7
