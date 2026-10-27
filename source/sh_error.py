@@ -7,10 +7,11 @@ error ``E = ||C - C'||_F / ||C'||_F`` of the basis correlation matrix (all 16
 complex elements) against the HEOM reference matrix, reported in percent.
 Only the window is compared: numerator and denominator both use the same slice.
 
-Every method stores ``corrmat_<method>_<case>.npz`` (merged into
-``corrmat_<method>.npz``) with the same basis as the canonical
-``mkct4oqs`` ``corrmat_mkct.npz`` / ``corrmat_heom.npz``, so no observable
-contraction is involved.
+Every method stores one archive per method, ``corrmat_<method>[_<label>].npz``
+(one matrix per case, ``t_<case>`` plus ``<case>``), with the same basis as the
+canonical ``mkct4oqs`` ``corrmat_mkct.npz`` / ``corrmat_heom.npz``, so no
+observable contraction is involved.  The older per-case labelled archives
+(``corrmat_<method>_<case>_<label>.npz``) are still read as a fallback.
 
 This is the runner; the algorithm is imported from the shared ``mre`` module.
 It writes ``output/sh_error.json`` (one value per config/method, each row
@@ -64,7 +65,11 @@ def _corrmat_path(prefix, method, case, label=""):
         return os.path.join(REF, prefix) + os.sep + "corrmat_mkct.npz"
     d = "./output/data/" + prefix + "/"
     if label:
-        # labelled sweep runs stay per case (they are not merged)
+        # One archive per method and label (the four cases inside), with the
+        # older per-case labelled files as a fallback.
+        new = d + f"corrmat_{method}_{label}.npz"
+        if os.path.exists(new):
+            return new
         return d + f"corrmat_{method}_{case}_{label}.npz"
     merged = d + f"corrmat_{method}.npz"
     if os.path.exists(merged):

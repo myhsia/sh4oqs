@@ -55,8 +55,8 @@ Shared pieces (`source/reference.py`, `source/config/`, and
 - **Parameter sweep** (A-base_line, `mash`, documented labels, `dt = 0.01`): `base`
   (N=200, 40k trajectories, `wmax_factor` 10), `N400`/`N800`, `wf8`/`wf14`, `traj160k`
   (160k trajectories), and `all` (N=800, cut 14, 160k).  Each label is one `data.yaml`
-  dispatch with `-label`; the per-case `corrmat_mash_<case>_<label>.npz` files stay unmerged
-  and feed `sh_error`/`FIG7`.
+  dispatch with `-label`; it writes `corrmat_mash_<label>.npz` (the four cases inside), which
+  feeds `sh_error`/`FIG7`.
 - Coding style: see the maintainer's shared `repo-rules` skill.
 
 ## Workflows
@@ -64,7 +64,6 @@ Shared pieces (`source/reference.py`, `source/config/`, and
 ```bash
 cd source
 python sh.py A-base_line -method fssh
-python sh_merge.py --configs A-base_line --methods fssh
 python library/surface_hopping/validation.py
 ```
 
