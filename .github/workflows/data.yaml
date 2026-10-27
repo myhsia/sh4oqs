@@ -94,7 +94,7 @@ jobs:
           build: "true"
 
   sh:
-    name: sh (${{ matrix.config }} / ${{ matrix.case }} / ${{ matrix.method }})
+    name: sh (${{ matrix.config }} / ${{ matrix.method }})
     needs: [plan, build_env]
     runs-on: ubuntu-latest
     timeout-minutes: 350
@@ -103,7 +103,6 @@ jobs:
       max-parallel: 20
       matrix:
         config: ${{ fromJSON(needs.plan.outputs.configs) }}
-        case: ${{ fromJSON(needs.plan.outputs.cases) }}
         method: ${{ fromJSON(needs.plan.outputs.methods) }}
     defaults:
       run:
@@ -117,7 +116,6 @@ jobs:
         working-directory: source
         env:
           SH_CFG: ${{ matrix.config }}
-          SH_CASE: ${{ matrix.case }}
           SH_METHOD: ${{ matrix.method }}
           SH_NTRAJ: ${{ inputs.n_traj }}
           SH_N: ${{ inputs.N }}
@@ -138,13 +136,14 @@ jobs:
           if os.environ.get("SH_SAMPLING"): kw["sampling"] = os.environ["SH_SAMPLING"]
           if os.environ.get("SH_WMAX"):   kw["wmax_factor"] = float(os.environ["SH_WMAX"])
           if os.environ.get("SH_LABEL"):  kw["label"] = os.environ["SH_LABEL"]
-          sh.run(os.environ["SH_CFG"], methods=[os.environ["SH_METHOD"]],
-                 cases=[os.environ["SH_CASE"]], **kw)
+          # The four cases run inside the job as parallel processes, so the
+          # driver writes one corrmat_<method>.npz per config (like MKCT).
+          sh.run(os.environ["SH_CFG"], methods=[os.environ["SH_METHOD"]], **kw)
           PY
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: sh-${{ matrix.config }}-${{ matrix.case }}-${{ matrix.method }}
+          name: sh-${{ matrix.config }}-${{ matrix.method }}
           path: source/output/data/
           if-no-files-found: error
           retention-days: 30
@@ -157,14 +156,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          pattern: sh-*-*-*
+          pattern: sh-*-*
           path: dist
           merge-multiple: true
-      - uses: actions/checkout@v7
-      - name: Merge the per-case correlation matrices
-        run: |
-          python3 -m pip install --quiet numpy
-          python source/corrmat_merge.py --root dist
       - name: Pack the whole run
         run: tar -czf sh-data.tar.gz -C dist .
       - uses: actions/upload-artifact@v7
