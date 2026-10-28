@@ -40,7 +40,11 @@ correlation matrix archive per method, `output/data/<prefix>/corrmat_<method>[_<
 (`save_group`, one `(nt, 4, 4)` matrix per case, `C(0) = I`, `<method>` = `fssh` or `mash`).
 The five observables are contractions of `C` (`library/corrmat.py`), computed at plot time only;
 `sh_error.py` scores `C` against HEOM by the relative Frobenius error
-`||C - C'||_F / ||C'||_F`.
+`||C - C'||_F / ||C'||_F`.  The synced `FIG0@corrmat.py` / `FIG4@robustness.py` draw this
+repository's figures, e.g.
+`python FIG0@corrmat.py -method fssh mash -ref ../../mkct4oqs/source/output/data` and
+`python FIG4@robustness.py -group fssh mash -ref ../../mkct4oqs/source/output/data`
+(`source/output/figures/`), overlaying the reference when the private checkout is present.
 
 ## Conventions
 

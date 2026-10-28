@@ -30,7 +30,8 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), "./library"))
 sys.pycache_prefix = os.path.abspath("./output/pycache")
 import mre as core
-from fsutils import load_config, load_group, ensure_dir
+from fsutils import load_config, ensure_dir
+from corrmat import load_corrmat
 from pltools import parse_xlims
 
 
@@ -59,36 +60,21 @@ JSON = "./output/sh_error.json"
 MD   = "./output/sh_error.md"
 
 
-def _corrmat_path(prefix, method, case, label=""):
-    """The archive holding one method's basis correlation matrix."""
-    if method == "mkct":
-        return os.path.join(REF, prefix) + os.sep + "corrmat_mkct.npz"
-    d = "./output/data/" + prefix + "/"
-    if label:
-        # One archive per method and label (the four cases inside), with the
-        # older per-case labelled files as a fallback.
-        new = d + f"corrmat_{method}_{label}.npz"
-        if os.path.exists(new):
-            return new
-        return d + f"corrmat_{method}_{case}_{label}.npz"
-    merged = d + f"corrmat_{method}.npz"
-    if os.path.exists(merged):
-        return merged
-    return d + f"corrmat_{method}_{case}.npz"
-
-
 def _corrmat(prefix, method, case, label=""):
-    """``(t, C)`` of one (method, case, label) correlation matrix."""
-    path = _corrmat_path(prefix, method, case, label)
-    if not os.path.exists(path):
-        return None
-    return load_group(path)[0][case]
+    """``(t, C)`` of one (method, case, label) matrix, or ``None``.
+
+    MKCT and the reference come from the canonical ``mkct4oqs`` checkout; the
+    method's own matrices are grouped (``corrmat_<method>[_<label>].npz``) or
+    per-case, both handled by ``corrmat.load_corrmat``.
+    """
+    base = (os.path.join(REF, prefix) if method == "mkct"
+            else "./output/data/" + prefix + "/")
+    return load_corrmat(base, method, case, label).get(case)
 
 
 def _ref(prefix):
     """``(t, C)`` of the HEOM reference correlation matrix."""
-    path = os.path.join(REF, prefix) + os.sep + "corrmat_heom.npz"
-    return load_group(path)[0]["qhm"]
+    return load_corrmat(os.path.join(REF, prefix), "heom").get("qhm")
 
 
 def error(prefix, method, case, label=""):
