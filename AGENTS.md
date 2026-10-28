@@ -26,10 +26,10 @@ All code is under `source/`, the working directory for the drivers (paths such a
   reference and the MKCT matrices come from the canonical `corrmat_heom.npz` /
   `corrmat_mkct.npz`; writes `output/sh_error.{json,md}`.
 - `source/FIG0@corrmat.py`, `source/FIG4@robustness.py` — synced copies of the canonical figure
-  scripts: `python FIG0@corrmat.py -method fssh mash -ref ../../mkct4oqs/source/output/data`
-  draws the 4x4 `C_ij(t)` pages (`corrmat-<method>@<prefix>.pdf`) and
-  `python FIG4@robustness.py -group fssh mash` the `<method>@<prefix>.pdf` comparison figures,
-  in `source/output/figures/`.
+  scripts: `python FIG0@corrmat.py -ref ../../mkct4oqs/source/output/data` draws the 4x4
+  `C_ij(t)` pages of every method found here (`corrmat-<method>@<prefix>.pdf`) and
+  `python FIG4@robustness.py` the `<method>@<prefix>.pdf` comparison figures, in
+  `source/output/figures/`.
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` conda environment.
 
 Shared pieces (`source/reference.py`, `source/FIG0@corrmat.py`, `source/FIG4@robustness.py`,
@@ -69,8 +69,8 @@ Shared pieces (`source/reference.py`, `source/FIG0@corrmat.py`, `source/FIG4@rob
 ```bash
 cd source
 python sh.py A-base_line -method fssh
-python FIG0@corrmat.py -method fssh mash -ref ../../mkct4oqs/source/output/data
-python FIG4@robustness.py -group fssh mash -ref ../../mkct4oqs/source/output/data
+python FIG0@corrmat.py -ref ../../mkct4oqs/source/output/data
+python FIG4@robustness.py -ref ../../mkct4oqs/source/output/data
 python library/surface_hopping/validation.py
 ```
 

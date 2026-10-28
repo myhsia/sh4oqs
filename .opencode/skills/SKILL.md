@@ -42,8 +42,8 @@ The five observables are contractions of `C` (`library/corrmat.py`), computed at
 `sh_error.py` scores `C` against HEOM by the relative Frobenius error
 `||C - C'||_F / ||C'||_F`.  The synced `FIG0@corrmat.py` / `FIG4@robustness.py` draw this
 repository's figures, e.g.
-`python FIG0@corrmat.py -method fssh mash -ref ../../mkct4oqs/source/output/data` and
-`python FIG4@robustness.py -group fssh mash -ref ../../mkct4oqs/source/output/data`
+`python FIG0@corrmat.py -ref ../../mkct4oqs/source/output/data` and
+`python FIG4@robustness.py -ref ../../mkct4oqs/source/output/data`
 (`source/output/figures/`), overlaying the reference when the private checkout is present.
 
 ## Conventions

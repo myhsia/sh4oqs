@@ -176,9 +176,6 @@ RUNLIST = [
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description = "Per-method comparison figures.")
-    ap.add_argument("-group", nargs = "+", default = ["all"],
-                    choices = ["all"] + GROUPS,
-                    help = "methods to draw (default: all present)")
     ap.add_argument("-ref", type = str, default = ".",
                     help = "directory holding the corrmat_heom.npz references")
     ap.add_argument("-label", type = str, default = "",
@@ -186,9 +183,8 @@ if __name__ == "__main__":
     ap.add_argument("-prefix", type = str, default = None,
                     help = "single config (default: every prefix of RUNLIST)")
     args = ap.parse_args()
-    groups = GROUPS if "all" in args.group else args.group
     for prefix in ([args.prefix] if args.prefix else RUNLIST):
-        for group in groups:
+        for group in GROUPS:
             main(prefix = prefix, group = group, ref_dir = args.ref,
                  label = args.label)
 
