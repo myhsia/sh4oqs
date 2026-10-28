@@ -120,14 +120,13 @@ def _page(case: str, t: np.ndarray, C: np.ndarray, tf: float,
     return fig
 
 
-def main(prefix: str, methods = METHODS, ref_dir: str = ".",
-         label: str = ""):
+def main(prefix: str, ref_dir: str = ".", label: str = ""):
     """Draw ``corrmat-<method>@<prefix>.pdf``: one 4x4 page per case.
 
     ``ref_dir`` holds the shared reference (``corrmat_heom.npz``), overlaid in
-    dashed black on the ``qhm`` page when present; a method without its matrix
-    is skipped.  Grouped and per-case archives are both accepted
-    (``corrmat.load_corrmat``).
+    dashed black on the ``qhm`` page when present.  Every method whose matrix
+    is found in the data directory is drawn (grouped or per-case archives,
+    ``corrmat.load_corrmat``); ``-label`` selects a tagged run.
     """
     d = "./output/data/" + prefix + "/"
     params = load_config(prefix)
@@ -141,7 +140,7 @@ def main(prefix: str, methods = METHODS, ref_dir: str = ".",
         ref_label = r"\ttfamily extDEOM" if params["quadratic"] \
             else r"\ttfamily HEOM"
     ensure_dir("./output/figures")
-    for method in methods:
+    for method in METHODS:
         series = load_corrmat(d, method, label = label)
         if not series:
             print("skip " + prefix + ": no corrmat for " + method)
@@ -176,9 +175,6 @@ RUNLIST = [
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(
         description = "Basis correlation matrix figures.")
-    ap.add_argument("-method", nargs = "+", default = ["all"],
-                    choices = ["all"] + list(METHODS),
-                    help = "methods to draw (default: all)")
     ap.add_argument("-ref", type = str, default = ".",
                     help = "directory holding the corrmat_heom.npz references")
     ap.add_argument("-label", type = str, default = "",
@@ -186,9 +182,7 @@ if __name__ == "__main__":
     ap.add_argument("-prefix", type = str, default = None,
                     help = "single config (default: every prefix of RUNLIST)")
     args = ap.parse_args()
-    methods = METHODS if "all" in args.method else args.method
     for prefix in ([args.prefix] if args.prefix else RUNLIST):
-        main(prefix = prefix, methods = methods, ref_dir = args.ref,
-             label = args.label)
+        main(prefix = prefix, ref_dir = args.ref, label = args.label)
 
 # %%
