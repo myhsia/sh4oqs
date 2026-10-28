@@ -14,21 +14,26 @@ Scientific background and methodology are described in
 All code is under `source/`, the working directory for the drivers (paths such as `./config` and
 `./output` are relative to it):
 
-- `source/sh.py` — driver: runs the selected methods/cases for a config and writes the
-  basis correlation matrix `output/data/<prefix>/corrmat_<method>.npz (the observables are contracted from it at plot
-  time by `library/corrmat.observables`, so only the correlation matrix is stored)` (`save_group`,
-  key = case, `branch = component = ("00","01","10","11")`, `C(0) = I`).  The five reported
-  observables are contractions of it (`library/corrmat.py`).
-  (seed files averaged first); labelled sweep runs stay per case.
+- `source/sh.py` — driver: runs the selected methods/cases for a config and writes one basis
+  correlation matrix archive per method, `output/data/<prefix>/corrmat_<method>[_<label>].npz`
+  (`save_group`, one `(nt, 4, 4)` matrix per case, `branch = component = ("00","01","10","11")`,
+  `C(0) = I`).  The five reported observables are contractions of it (`library/corrmat.py`),
+  computed at plot time only.
 - `source/library/surface_hopping/` — `fssh.py` (fewest-switches) and `mash.py` (mapping approach),
   both enabled in `METHODS`, plus `validation.py` (regression suite).
 - `source/sh_error.py` — accuracy of the surface-hopping runs against HEOM, with the relative
   Frobenius metric of `library/mre.py` (`||C - C'||_F / ||C'||_F`); the
   reference and the MKCT matrices come from the canonical `corrmat_heom.npz` /
   `corrmat_mkct.npz`; writes `output/sh_error.{json,md}`.
+- `source/FIG0@corrmat.py`, `source/FIG4@robustness.py` — synced copies of the canonical figure
+  scripts: `python FIG0@corrmat.py -method fssh mash -ref ../../mkct4oqs/source/output/data`
+  draws the 4x4 `C_ij(t)` pages (`corrmat-<method>@<prefix>.pdf`) and
+  `python FIG4@robustness.py -group fssh mash` the `<method>@<prefix>.pdf` comparison figures,
+  in `source/output/figures/`.
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` conda environment.
 
-Shared pieces (`source/reference.py`, `source/config/`, and
+Shared pieces (`source/reference.py`, `source/FIG0@corrmat.py`, `source/FIG4@robustness.py`,
+`source/config/`, and
 `source/library/{qutils,fsutils,pltools,extended_deom,mre,corrmat}.py`) are **copies** of the canonical files in the private
 `mkct4oqs` repository, so a public clone and the CI work without a token.
 
@@ -64,6 +69,8 @@ Shared pieces (`source/reference.py`, `source/config/`, and
 ```bash
 cd source
 python sh.py A-base_line -method fssh
+python FIG0@corrmat.py -method fssh mash -ref ../../mkct4oqs/source/output/data
+python FIG4@robustness.py -group fssh mash -ref ../../mkct4oqs/source/output/data
 python library/surface_hopping/validation.py
 ```
 
