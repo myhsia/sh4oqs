@@ -27,13 +27,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "./library"))
 sys.pycache_prefix = os.path.abspath("./output/pycache")
 from pltools import GridPlt, parse_xlims
 from fsutils import ensure_dir, load_config
-from corrmat import load_corrmat
+from corrmat import available_methods, load_corrmat
 
 
 # ``mkct.py`` basis_list: |0><0|, |0><1|, |1><0|, |1><1| (both axes of C_ij).
 BASIS   = ("00", "01", "10", "11")
 CASES   = ("qhm", "qah", "chm", "cah")
-METHODS = ("mkct", "fssh", "mash", "dmrg")
 # The SI draws Re blue and Im red, both solid; the reference is dashed black.
 RE_COLOR, IM_COLOR = "C0", "C3"
 REF_COLOR = "k"
@@ -125,8 +124,8 @@ def main(prefix: str, ref_dir: str = ".", label: str = ""):
 
     ``ref_dir`` holds the shared reference (``corrmat_heom.npz``), overlaid in
     dashed black on the ``qhm`` page when present.  Every method whose matrix
-    is found in the data directory is drawn (grouped or per-case archives,
-    ``corrmat.load_corrmat``); ``-label`` selects a tagged run.
+    exists in the data directory is drawn (``corrmat.available_methods``,
+    grouped or per-case archives); ``-label`` selects a tagged run.
     """
     d = "./output/data/" + prefix + "/"
     params = load_config(prefix)
@@ -140,11 +139,8 @@ def main(prefix: str, ref_dir: str = ".", label: str = ""):
         ref_label = r"\ttfamily extDEOM" if params["quadratic"] \
             else r"\ttfamily HEOM"
     ensure_dir("./output/figures")
-    for method in METHODS:
+    for method in available_methods(d, label = label):
         series = load_corrmat(d, method, label = label)
-        if not series:
-            print("skip " + prefix + ": no corrmat for " + method)
-            continue
         name = "corrmat-" + method + "@" + prefix + ("_" + label if label else "")
         with PdfPages("./output/figures/" + name + ".pdf") as pdf:
             for case in CASES:

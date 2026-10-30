@@ -4,7 +4,7 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "./library"))
 sys.pycache_prefix = os.path.abspath("./output/pycache")
 from pltools import GridPlt, parse_xlims
-from corrmat import observables, load_corrmat
+from corrmat import available_methods, observables, load_corrmat
 from fsutils import load_config, ensure_dir
 
 
@@ -19,10 +19,9 @@ VARIANTS = {
     "heom": ("k",  "-", 1.2, 1.0),
 }
 
-# Groups drawn per prefix: one per method that stores a correlation matrix
-# (``corrmat_<group>[_<label>].npz``, or the per-case archives).  Each repo
-# draws only its own methods; ``-group`` selects them.
-GROUPS = ["mkct", "fssh", "mash", "dmrg"]
+# Groups are the methods whose correlation matrix the data directory holds
+# (``corrmat_<group>[_<label>].npz``, or the per-case archives); each repo draws
+# only its own methods, and ``main`` is called once per group found.
 
 # Fixed y-limits for the observables (the same for the matrix and scalar rows).
 YLIMS = {"corr":  [-1, 1, 2],   "xorr":  [-1, 1, 2],
@@ -184,7 +183,8 @@ if __name__ == "__main__":
                     help = "single config (default: every prefix of RUNLIST)")
     args = ap.parse_args()
     for prefix in ([args.prefix] if args.prefix else RUNLIST):
-        for group in GROUPS:
+        d = "./output/data/" + prefix + "/"
+        for group in available_methods(d, label = args.label):
             main(prefix = prefix, group = group, ref_dir = args.ref,
                  label = args.label)
 
