@@ -7,10 +7,10 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 src="$root/../mkct4oqs/source"
 [ -d "$src" ] || { echo "missing canonical checkout at $src"; exit 1; }
-mkdir -p "$root/source/config" "$root/source/library"
+mkdir -p "$root/source/config" "$root/source/library" "$root/source/tools"
 rsync -a --delete "$src/config/" "$root/source/config/"
 cp "$src/reference.py" "$root/source/reference.py"
 cp "$src/FIG0@corrmat.py" "$src/FIG4@robustness.py" "$root/source/"
 cp "$src/library/qutils.py" "$src/library/fsutils.py" "$src/library/pltools.py" "$root/source/library/"
 cp "$src/library/extended_deom.py" "$src/library/mre.py" "$src/library/corrmat.py" "$root/source/library/"
-echo "synced config/, reference.py, the FIG scripts and qutils/fsutils/pltools/extended_deom/mre/corrmat.py from $src"
+echo "synced config/, reference.py, the FIG scripts and qutils/fsutils/pltools/extended_deom/mre/corrmat.py and tools/link_heom.sh from $src"

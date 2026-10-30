@@ -35,8 +35,9 @@ def _load(d: str, ref_d: str, group: str, names: list,
     Returns ``{name: {quantity: (t, y, ylim)}}`` (``pop`` as ``(t, y)``).
     Every group stores the same basis correlation matrix
     (``corrmat_<group>[_<label>].npz``); the reference ``corrmat_heom.npz`` is
-    read from ``ref_d`` and drawn with every group.  ``corrmat.observables``
-    contracts each matrix to the five curves.
+    read from ``ref_d`` (a data root) and drawn as its own ``heom`` series, so
+    it never replaces a case.  ``corrmat.observables`` contracts each matrix to
+    the five curves.
     """
     out = {n: {} for n in names}
 
@@ -52,12 +53,14 @@ def _load(d: str, ref_d: str, group: str, names: list,
         for n, (t, C) in load_corrmat(d, group, label = label).items():
             _fill(n, t, C)
     if "heom" in names:
-        for n, (t, C) in load_corrmat(ref_d, "heom").items():
-            _fill(n, t, C)
+        ref = load_corrmat(ref_d, "heom").get("qhm")
+        if ref is not None:
+            _fill("heom", *ref)
     return out
 
 
-def main(prefix: str, group: str = "mkct", ref_dir: str = ".",
+def main(prefix: str, group: str = "mkct",
+         ref_dir: str = "./output/data",
          label: str = ""):
     names  = list(VARIANTS)
     cases  = [n for n in names if n != "heom"]
@@ -175,8 +178,9 @@ RUNLIST = [
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description = "Per-method comparison figures.")
-    ap.add_argument("-ref", type = str, default = ".",
-                    help = "directory holding the corrmat_heom.npz references")
+    ap.add_argument("-ref", type = str, default = "./output/data",
+                    help = "data root holding the corrmat_heom.npz references "
+                           "(default: %(default)s)")
     ap.add_argument("-label", type = str, default = "",
                     help = "tagged run suffix (default: the baseline)")
     ap.add_argument("-prefix", type = str, default = None,
