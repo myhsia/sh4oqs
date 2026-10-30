@@ -119,13 +119,14 @@ def _page(case: str, t: np.ndarray, C: np.ndarray, tf: float,
     return fig
 
 
-def main(prefix: str, ref_dir: str = ".", label: str = ""):
+def main(prefix: str, ref_dir: str = "./output/data", label: str = ""):
     """Draw ``corrmat-<method>@<prefix>.pdf``: one 4x4 page per case.
 
-    ``ref_dir`` holds the shared reference (``corrmat_heom.npz``), overlaid in
-    dashed black on the ``qhm`` page when present.  Every method whose matrix
-    exists in the data directory is drawn (``corrmat.available_methods``,
-    grouped or per-case archives); ``-label`` selects a tagged run.
+    ``ref_dir`` is a data root (the layout of ``./output/data``) whose
+    ``<prefix>/corrmat_heom.npz`` is overlaid in dashed black on the ``qhm``
+    page when present.  Every method whose matrix exists in the data directory
+    is drawn (``corrmat.available_methods``, grouped or per-case archives);
+    ``-label`` selects a tagged run.
     """
     d = "./output/data/" + prefix + "/"
     params = load_config(prefix)
@@ -171,8 +172,9 @@ RUNLIST = [
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(
         description = "Basis correlation matrix figures.")
-    ap.add_argument("-ref", type = str, default = ".",
-                    help = "directory holding the corrmat_heom.npz references")
+    ap.add_argument("-ref", type = str, default = "./output/data",
+                    help = "data root holding the corrmat_heom.npz references "
+                           "(default: %(default)s)")
     ap.add_argument("-label", type = str, default = "",
                     help = "tagged run suffix (default: the baseline)")
     ap.add_argument("-prefix", type = str, default = None,
