@@ -18,7 +18,10 @@ Both axes of ``C`` are labelled by ``BASIS`` and indexed by ``basis_list``
 ``corrmat_<method>[_<label>].npz`` (one matrix per case) is canonical, and when
 it is absent the per-case archives ``corrmat_<method>_<case>[_<label>].npz``
 (CI jobs run one case each, segmented tDMRG runs are per case) are assembled.
-``mkct`` and ``heom`` are always grouped.
+``mkct`` and ``heom`` are always grouped.  ``available_methods`` applies the
+same naming rules as an existence scan, so the plotting scripts draw exactly
+the methods a directory holds without probing (and without reporting) the
+absent ones.
 """
 import os
 
@@ -32,6 +35,8 @@ from fsutils import load_group
 BASIS      = ("00", "01", "10", "11")
 # Report cases, in the archive order.
 CASES      = ("qhm", "qah", "chm", "cah")
+# Methods that store a correlation matrix (``heom`` is the shared reference).
+METHODS    = ("mkct", "fssh", "mash", "dmrg")
 # Basis: |0><0|, |0><1|, |1><0|, |1><1|
 basis_list = np.array([basis(2, (0, 0)), basis(2, (0, 1)),
                        basis(2, (1, 0)), basis(2, (1, 1))])
@@ -72,6 +77,40 @@ def observables(C: np.ndarray, normalize: bool = True) -> dict:
     return out
 
 
+def _grouped_path(directory, method: str, label: str = "") -> str:
+    """The canonical grouped archive ``corrmat_<method>[_<label>].npz``."""
+    return (str(directory).rstrip("/") + "/" + "corrmat_" + method +
+            ("_" + label if label else "") + ".npz")
+
+
+def _case_paths(directory, method: str, case: str,
+                label: str = "") -> tuple:
+    """The two accepted per-case spellings, the current one first."""
+    d   = str(directory).rstrip("/") + "/"
+    tag = method + ("_" + label if label else "")
+    return (d + "corrmat_" + tag + "_" + case + ".npz",
+            d + "corrmat_" + method + "_" + case +
+            ("_" + label if label else "") + ".npz")
+
+
+def available_methods(directory, methods = METHODS, label: str = "") -> list:
+    """The methods whose correlation matrix exists in ``directory``.
+
+    A cheap existence scan (no archive is loaded), in ``methods`` order: a
+    method counts when its grouped archive or any of its per-case archives is
+    present, exactly the files ``load_corrmat`` would read.  The plotting
+    scripts iterate this, so they draw what a directory holds and stay quiet
+    about the methods it does not.
+    """
+    out = []
+    for method in methods:
+        if os.path.exists(_grouped_path(directory, method, label)) or any(
+                os.path.exists(p) for c in CASES
+                for p in _case_paths(directory, method, c, label)):
+            out.append(method)
+    return out
+
+
 def load_corrmat(directory, method: str, case: str = None,
                  label: str = "") -> dict:
     """Load one method's basis correlation matrices as ``{case: (t, C)}``.
@@ -81,19 +120,15 @@ def load_corrmat(directory, method: str, case: str = None,
     assembled (per-case CI jobs and segmented tDMRG runs).  ``case`` restricts
     the result to one key; an absent archive gives an empty dict.
     """
-    d = str(directory).rstrip("/") + "/"
-    tag = method + ("_" + label if label else "")
-    grouped = d + "corrmat_" + tag + ".npz"
+    grouped = _grouped_path(directory, method, label)
     if os.path.exists(grouped):
         series, _ = load_group(grouped)
         out = dict(series)
     else:
         out = {}
         for c in CASES:
-            candidates = (d + "corrmat_" + tag + "_" + c + ".npz",
-                          d + "corrmat_" + method + "_" + c +
-                          ("_" + label if label else "") + ".npz")
-            path = next((p for p in candidates if os.path.exists(p)), None)
+            path = next((p for p in _case_paths(directory, method, c, label)
+                         if os.path.exists(p)), None)
             if path is None:
                 continue
             series, _ = load_group(path)
