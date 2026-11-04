@@ -68,7 +68,7 @@ repository's figures, e.g.
   the canonical files in `mkct4oqs`; after a change there, run `tools/sync_from_mkct.sh` and
   commit.
 - System-wide conventions (repo etiquette, Python style, git/PR, LaTeX, tooling) are in the
-  maintainer's workspace `repo-rules` skill.
+  maintainer's global `repo-rules` skill.
 
 ## Workflows
 
