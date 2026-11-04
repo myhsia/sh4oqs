@@ -68,10 +68,13 @@ def main(prefix: str, group: str = "mkct",
                    os.path.join(ref_dir, prefix) + "/", group, names,
                    label = label)
 
-    # A quantity is drawn when every case has it (HEOM is optional, added when
-    # present); each row is built only from the cases that carry the data.
+    # A quantity is drawn when at least one case carries it (HEOM is optional,
+    # added when present); each row is built only from the cases that carry the
+    # data, so a group with a single case (e.g. ``cayley_dressed``, quantum
+    # harmonic only) still produces its reduced page.
     def have(key):
-        return all(key in obs[n] for n in cases)
+        return any(key in obs[n] for n in cases)
+    partial = any(not obs[n] for n in cases)
     if not any(have(q) for q in ("corr", "xorr", "cohe+", "cohe-")):
         return
 
@@ -114,7 +117,11 @@ def main(prefix: str, group: str = "mkct",
                                   labels[n]))
                 pop_lines.append((t, P[:, 1], color, ls, lw, alpha / 2, ""))
                 continue
-            p, q = cases[cases.index(n) % 2], cases[2 + cases.index(n) % 2]
+            if partial:
+                # a reduced group has no four-case pairing: use the case style
+                p = q = n
+            else:
+                p, q = cases[cases.index(n) % 2], cases[2 + cases.index(n) % 2]
             color, ls = VARIANTS[n][0], VARIANTS[n][1]
             pop_lines.append((t, P[:, 0], color, ls,
                               VARIANTS[p][2], VARIANTS[p][3],

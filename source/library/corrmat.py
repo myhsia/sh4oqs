@@ -36,7 +36,7 @@ BASIS      = ("00", "01", "10", "11")
 # Report cases, in the archive order.
 CASES      = ("qhm", "qah", "chm", "cah")
 # Methods that store a correlation matrix (``heom`` is the shared reference).
-METHODS    = ("mkct", "fssh", "mash", "dmrg")
+METHODS    = ("mkct", "cayley", "cayley_dressed", "fssh", "mash", "dmrg")
 # Basis: |0><0|, |0><1|, |1><0|, |1><1|
 basis_list = np.array([basis(2, (0, 0)), basis(2, (0, 1)),
                        basis(2, (1, 0)), basis(2, (1, 1))])

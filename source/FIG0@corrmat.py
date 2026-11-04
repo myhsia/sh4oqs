@@ -53,7 +53,7 @@ def _page(case: str, t: np.ndarray, C: np.ndarray, tf: float,
     n = len(BASIS)
     if C.ndim != 3 or C.shape[1] != n or C.shape[2] != n:
         raise ValueError(
-            "corrmat_mkct.npz must hold (Nt, %d, %d) arrays; got %s."
+            "the correlation-matrix archive must hold (Nt, %d, %d) arrays; got %s."
             % (n, n, C.shape))
     # Square panels: the height follows the cell width, with the same tight
     # gaps as the combined bodies (wspace = hspace = 0.1).  The shared y-axis
@@ -119,7 +119,8 @@ def _page(case: str, t: np.ndarray, C: np.ndarray, tf: float,
     return fig
 
 
-def main(prefix: str, ref_dir: str = "./output/data", label: str = ""):
+def main(prefix: str, ref_dir: str = "./output/data", label: str = "",
+         tmax: float = None):
     """Draw ``corrmat-<method>@<prefix>.pdf``: one 4x4 page per case.
 
     ``ref_dir`` is a data root (the layout of ``./output/data``) whose
@@ -130,8 +131,10 @@ def main(prefix: str, ref_dir: str = "./output/data", label: str = ""):
     """
     d = "./output/data/" + prefix + "/"
     params = load_config(prefix)
-    # The full computed window [0, tf] (not the cut of the dynamics figures).
-    tf = parse_xlims(params["xlims"], reorder = True)[0][1]
+    # The full computed window [0, tf] (not the cut of the dynamics figures);
+    # ``tmax`` overrides it for runs that stop earlier (or go further).
+    tf = (parse_xlims(params["xlims"], reorder = True)[0][1]
+          if tmax is None else float(tmax))
     # Shared reference C(t) for the qhm page (harmonic bath only).
     ref, ref_label = None, ""
     ref_series = load_corrmat(os.path.join(ref_dir, prefix), "heom")
@@ -142,7 +145,9 @@ def main(prefix: str, ref_dir: str = "./output/data", label: str = ""):
     ensure_dir("./output/figures")
     for method in available_methods(d, label = label):
         series = load_corrmat(d, method, label = label)
-        name = "corrmat-" + method + "@" + prefix + ("_" + label if label else "")
+        name = ("corrmat-" + method + "@" + prefix
+                + ("_" + label if label else "")
+                + (f"_t{tmax:g}" if tmax is not None else ""))
         with PdfPages("./output/figures/" + name + ".pdf") as pdf:
             for case in CASES:
                 if case not in series:
@@ -179,8 +184,11 @@ if __name__ == "__main__":
                     help = "tagged run suffix (default: the baseline)")
     ap.add_argument("-prefix", type = str, default = None,
                     help = "single config (default: every prefix of RUNLIST)")
+    ap.add_argument("-tmax", type = float, default = None,
+                    help = "axis / window upper limit (default: the config tf)")
     args = ap.parse_args()
     for prefix in ([args.prefix] if args.prefix else RUNLIST):
-        main(prefix = prefix, ref_dir = args.ref, label = args.label)
+        main(prefix = prefix, ref_dir = args.ref, label = args.label,
+             tmax = args.tmax)
 
 # %%
