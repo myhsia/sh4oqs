@@ -198,3 +198,10 @@ Labels: **measured** = a run cited by its artifact/command; **derived** = a stat
 - **Classical-nuclei residual** — measured: the deviation from HEOM shrinks as `beta` falls and
   grows as it rises, i.e. it is the classical-nuclei approximation, not a convergence parameter.
   No numerical setting removes it; report it as the method's regime rather than tuning it away.
+
+## History note (2026-11-05)
+
+`main` was rewritten to fold the spaced-`=` house style into history — **all commit shas changed**
+and the remote was force-pushed.  Rollback bundles live outside the repository (workspace
+`admin/backups/`); the recovery commands and the lifecycle rule are in the workspace guide's
+"History rewrite backups" section.  Delete this section when the bundles are deleted.
