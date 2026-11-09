@@ -167,6 +167,9 @@ unpinned, so the libraries float to latest at install time).
   `source/output/data/` as artifact `sh-<config>-<method>`; `combine` packs every artifact of the
   run into the `sh-data` tarball (30-day retention for both).  `run-name` puts the config and
   method in the run title.
+- `.github/workflows/collect.yaml` — **manual only** (`workflow_dispatch`): packs the `sh-data`
+  artifacts of several Data runs (input `runs`, space-separated ids) into one tarball, so a batch
+  dispatched as per-config runs is a single download.
 - Inputs: `configs` (default `A-base_line`), `methods` (default `fssh mash`), `n_traj` (empty: the
   `N_TRAJ` budget), `N`, `njobs`, `dt` (empty: the driver's default), `wmax`, `label`, `sampling`.
   The `cases` input still exists and is exported by `plan`, but it is **unused**: the matrix has no
