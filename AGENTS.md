@@ -107,6 +107,9 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
   results and the parent writes every archive, so no two processes write the same file.  With one
   case per process (`nproc >= #cases`) the inner pool is skipped, since nested pools only add
   overhead.
+- `numba` is a declared dependency: the trajectory kernels import `njit` directly, with no
+  `except ImportError` fallback decorator, so a missing numba fails at import instead of silently
+  running the kernels as pure Python.
 - Classical nuclei: a cross-check, not an exact reference; reliable mainly for slow baths and high
   temperature.
 - Archive schema is shared with MKCT: `corrmat_<method>[_<label>].npz`, one matrix per case, same
