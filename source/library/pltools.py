@@ -300,6 +300,37 @@ class GridPlt:
         ax.figure.canvas.draw()
 
     @staticmethod
+    def _pin_xlabel(ax, side: str | None = None,
+                    offset_pt: float | None = None) -> None:
+        """Pin ``ax``'s x-label ``offset_pt`` points below (or above) the
+        bounding box of its tick labels.
+
+        An x-label has no spine to hug: the tick numbers occupy that region, so
+        the reference edge is the tick labels' outer bounding box, not the axis.
+        """
+        lbl = ax.xaxis.get_label()
+        lbl.set_rotation_mode("anchor")
+        lbl.set_va("baseline")
+        lbl.set_ha("center")
+        side = side or ax.xaxis.get_label_position()
+        fig = ax.figure
+        fig.canvas.draw()
+        r = fig.canvas.get_renderer()
+        boxes = [t.get_window_extent(r) for t in ax.get_xticklabels()
+                 if t.get_text()]
+        if boxes:
+            edge = (min(b.y0 for b in boxes) if side == "bottom"
+                    else max(b.y1 for b in boxes))
+        else:
+            ext = ax.get_window_extent(r)
+            edge = ext.y0 if side == "bottom" else ext.y1
+        dy = (offset_pt or GridPlt.LABEL_BASE_PT) * fig.dpi / 72
+        y_disp = edge - dy if side == "bottom" else edge + dy
+        ax.xaxis.set_label_coords(
+            0.5, ax.transAxes.inverted().transform((0, y_disp))[1])
+        fig.canvas.draw()
+
+    @staticmethod
     def _pin_text(ax, txt, side: str = "right",
                   offset_pt: float | None = None) -> None:
         """Pin a side ``ax.text`` baseline ``offset_pt`` points from the spine."""
