@@ -86,6 +86,8 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 
 ## Conventions and pitfalls
 
+- Set `sys.pycache_prefix = os.path.abspath("./output/pycache")` **after** third-party imports and
+  **before** the first project import in every run script.
 - Four cases: `QHM`, `QAH`, `CHM`, `CAH` (`_CASE_MATRIX` in `sh.py`: quantum sampling × anharmonic).
   The anharmonic quartic coefficient is `a = anharmon * sqrt(7/6)`.
 - The quantum cases draw the Wigner (quantum thermal) variance per mode, the classical cases the
