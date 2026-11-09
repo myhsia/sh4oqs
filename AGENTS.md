@@ -29,7 +29,7 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 ## Environment
 
 1. A conda environment `sh` is created from `./source/environment.yaml`: the pinned interpreter
-   `python=3.15.1` (channels `defaults`, `conda-pypi`) plus `./source/requirements.txt`, which stays
+   `python=3.15` (channels `defaults`, `conda-pypi`) plus `./source/requirements.txt`, which stays
    unpinned (`numpy`, `numba`, `matplotlib`, `pyyaml`).
 2. All commands assume the working directory is `./source` and the `sh` env is active; the drivers
    use paths relative to `./source` (e.g. `./config`, `./output`).
