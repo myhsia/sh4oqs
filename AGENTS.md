@@ -65,12 +65,16 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
   `A-base_line_tf6` test config).  `mkct4oqs` owns them.
 - `source/FIG0@corrmat.py`, `source/FIG4@robustness.py` — **synced** canonical figure scripts:
   `FIG0` draws the 4x4 `C_ij(t)` pages of every method found here and `FIG4` the
-  `<method>@<prefix>.pdf` comparison figures, overlaying the reference when the private checkout is
-  present.
+  `<method>@<prefix>.pdf` comparison figures, overlaying the reference `corrmat_heom.npz` that
+  `tools/link_heom.sh` places in `source/output/data/<prefix>/`.  Both read the data root
+  `./output/data` by default (`-ref DIR` for another root; without a reference the `qhm` pages are
+  drawn alone).
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` environment.
 - `.github/workflows/ci.yaml`, `.github/workflows/data.yaml`, `.github/actions/sh-env/action.yml` —
   CI (see below).
 - `tools/sync_from_mkct.sh` — copies the shared pieces from `../mkct4oqs/source`.
+- `source/tools/link_heom.sh` — links the reference `corrmat_heom.npz` (generated in `dmrg4oqs`)
+  into `source/output/data/<prefix>/`; run it once per checkout after the data land.
 - `README.md`, `LICENSE`.
 
 > **Sync reminder.**  After changing any of the shared pieces in `mkct4oqs`, run
@@ -116,8 +120,9 @@ python sh.py A-base_line -method mash                    # four cases, one corrm
 python sh.py A-base_line -method mash -n_traj 480000 -N 3200 -dt 0.01   # production point
 python sh.py A-base_line -method mash -label tst -n_traj 500 -N 60      # labelled smoke test
 python sh_error.py --configs A-base_line                 # accuracy table
-python FIG0@corrmat.py -ref ../../mkct4oqs/source/output/data
-python FIG4@robustness.py -ref ../../mkct4oqs/source/output/data
+bash tools/link_heom.sh                                 # reference links (once)
+python FIG0@corrmat.py
+python FIG4@robustness.py
 python library/surface_hopping/validation.py
 ```
 

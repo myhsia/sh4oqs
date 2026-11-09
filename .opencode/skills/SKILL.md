@@ -46,10 +46,10 @@ correlation matrix archive per method, `output/data/<prefix>/corrmat_<method>[_<
 `ehrenfest`).  The five observables are contractions of `C` (`library/corrmat.py`), computed at plot
 time only; `sh_error.py` scores `C` against HEOM by the relative Frobenius error
 `||C - C'||_F / ||C'||_F` over the calculation window `[0, tf]`, in percent.  The synced
-`FIG0@corrmat.py` / `FIG4@robustness.py` draw this repository's figures, e.g.
-`python FIG0@corrmat.py -ref ../../mkct4oqs/source/output/data` and
-`python FIG4@robustness.py -ref ../../mkct4oqs/source/output/data`
-(`source/output/figures/`), overlaying the reference when the private checkout is present.
+`FIG0@corrmat.py` / `FIG4@robustness.py` draw this repository's figures into
+`source/output/figures/`, e.g. `python FIG0@corrmat.py` and `python FIG4@robustness.py`; both read
+the reference from the data root `./output/data` (`bash tools/link_heom.sh` puts it there,
+`-ref DIR` overrides).
 
 ## Conventions
 
@@ -74,9 +74,10 @@ time only; `sh_error.py` scores `C` against HEOM by the relative Frobenius error
   reliable mainly for slow baths and high temperature, and its deviation from HEOM grows as
   `beta` rises.  That residual is the method's regime, not a convergence parameter.
 - The shared pieces (`reference.py`, `config/`, `FIG0@corrmat.py`, `FIG4@robustness.py`,
-  `qutils.py`, `fsutils.py`, `pltools.py`, `extended_deom.py`, `mre.py`, `corrmat.py`) are copies of
-  the canonical files in `mkct4oqs`; after a change there, run `tools/sync_from_mkct.sh` and
-  commit.
+  `qutils.py`, `fsutils.py`, `pltools.py`, `extended_deom.py`, `mre.py`, `corrmat.py`,
+  `source/tools/link_heom.sh`) are copies of the canonical files in `mkct4oqs`; after a change
+  there, run `tools/sync_from_mkct.sh` and commit.  `link_heom.sh` links the reference
+  (`corrmat_heom.npz`, generated in `dmrg4oqs`) into `source/output/data/<prefix>/`.
 - System-wide conventions (repo etiquette, Python style, git/PR, LaTeX, tooling) are in the
   maintainer's global `repo-rules` skill.
 
