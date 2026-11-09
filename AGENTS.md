@@ -69,7 +69,10 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
   `<method>@<prefix>.pdf` comparison figures, overlaying the reference `corrmat_heom.npz` that
   `tools/link_heom.sh` places in `source/output/data/<prefix>/`.  Both read the data root
   `./output/data` by default (`-ref DIR` for another root; without a reference the `qhm` pages are
-  drawn alone).
+  drawn alone).  `FIG0` also takes `-label TAG` (a tagged run) and `-tmax T` (axis window, file
+  suffixed `_t<T>`); `FIG4` draws a group that holds only some of the four cases from the cases
+  present, so a single-case method still yields its reduced pages.  Both flags are defined in
+  `mkct4oqs/AGENTS.md`.
 - `source/environment.yaml`, `source/requirements.txt` — the `sh` environment.
 - `.github/workflows/ci.yaml`, `.github/workflows/data.yaml`, `.github/actions/sh-env/action.yml` —
   CI (see below).
@@ -148,15 +151,13 @@ Each line prints `[PASS]`/`[FAIL]` with the achieved maximum error.  The bare-sy
 on every push (see below).
 
 ## CI
-**Dependabot proposes, CI decides.**  `.github/dependabot.yml` watches
-`github-actions` daily and, for the `conda` ecosystem (the interpreter pin in
-`source/environment.yaml`), ignores **patch** releases of `python`: a patch carries no
-scientific change and is the class most likely to break the compiled extensions (numba,
-physics-tenpy).  The pin therefore moves deliberately, in step with the sibling
-repositories, and only once `build_env` resolves the environment and the suite is green --
-an update is "the latest version compatible with the required packages" exactly when that
-gate passes, which Dependabot itself cannot establish (`requirements.txt` is intentionally
-unpinned, so the libraries float to latest at install time).
+**Dependencies: the bot proposes, CI decides** (the policy and its reasoning are in the
+machine-global `repo-rules` skill, "Local and CI parity").  `.github/dependabot.yml` watches
+`github-actions` daily and, for the `conda` ecosystem, ignores **patch** releases of `python` -- no
+functional change, and the class most likely to break the compiled extensions.  The pin in
+`source/environment.yaml` moves deliberately, in step with the sibling repositories, and only once
+`build_env` resolves the environment and the suite is green.  `requirements.txt` is intentionally
+unpinned, so the libraries float to latest at install time.
 
 - `.github/workflows/ci.yaml` — `Syntax (compileall)`, `Build environment (conda)`, and the
   `Surface-hopping suite`; triggers are push/PR (Markdown ignored), the daily 09:41 UTC schedule,

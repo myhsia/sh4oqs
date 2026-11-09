@@ -49,7 +49,8 @@ time only; `sh_error.py` scores `C` against HEOM by the relative Frobenius error
 `FIG0@corrmat.py` / `FIG4@robustness.py` draw this repository's figures into
 `source/output/figures/`, e.g. `python FIG0@corrmat.py` and `python FIG4@robustness.py`; both read
 the reference from the data root `./output/data` (`bash tools/link_heom.sh` puts it there,
-`-ref DIR` overrides).
+`-ref DIR` overrides).  `FIG0` also takes `-label TAG` / `-tmax T` and `FIG4` handles partial
+groups (a method holding only some cases); both are defined in `mkct4oqs/AGENTS.md`.
 
 ## Conventions
 
