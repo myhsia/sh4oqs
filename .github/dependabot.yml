@@ -12,3 +12,14 @@ updates:
     schedule:
       # Check for interpreter updates every day (`python=3.15` in environment.yaml)
       interval: "daily"
+    ignore:
+      # Dependabot can only bump the declarator; it does not solve this
+      # environment.  The compatibility gate is CI (`build_env` plus the
+      # regression suite), and the pin moves deliberately, together with the
+      # sibling repositories, once that gate is green.  Patch releases of the
+      # interpreter carry no scientific change and are the class most likely
+      # to break the compiled extensions (numba, physics-tenpy), so they are
+      # ignored; a bumped release that was declined needs no PR either.
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-patch"

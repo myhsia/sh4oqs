@@ -139,6 +139,15 @@ Each line prints `[PASS]`/`[FAIL]` with the achieved maximum error.  The bare-sy
 on every push (see below).
 
 ## CI
+**Dependabot proposes, CI decides.**  `.github/dependabot.yml` watches
+`github-actions` daily and, for the `conda` ecosystem (the interpreter pin in
+`source/environment.yaml`), ignores **patch** releases of `python`: a patch carries no
+scientific change and is the class most likely to break the compiled extensions (numba,
+physics-tenpy).  The pin therefore moves deliberately, in step with the sibling
+repositories, and only once `build_env` resolves the environment and the suite is green --
+an update is "the latest version compatible with the required packages" exactly when that
+gate passes, which Dependabot itself cannot establish (`requirements.txt` is intentionally
+unpinned, so the libraries float to latest at install time).
 
 - `.github/workflows/ci.yaml` — `Syntax (compileall)`, `Build environment (conda)`, and the
   `Surface-hopping suite`; triggers are push/PR (Markdown ignored), the daily 09:41 UTC schedule,
@@ -199,9 +208,3 @@ Labels: **measured** = a run cited by its artifact/command; **derived** = a stat
   grows as it rises, i.e. it is the classical-nuclei approximation, not a convergence parameter.
   No numerical setting removes it; report it as the method's regime rather than tuning it away.
 
-## History note (2026-11-05)
-
-`main` was rewritten to fold the spaced-`=` house style into history — **all commit shas changed**
-and the remote was force-pushed.  Rollback bundles live outside the repository (workspace
-`admin/backups/`); the recovery commands and the lifecycle rule are in the workspace guide's
-"History rewrite backups" section.  Delete this section when the bundles are deleted.

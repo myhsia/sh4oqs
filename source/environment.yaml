@@ -3,6 +3,9 @@ channels:
   - defaults
   - conda-pypi
 dependencies:
-  - python=3.15.1
+  # Keep the interpreter pin in step with the canonical `mkct4oqs` pin and with
+  # `dmrg4oqs`: the same interpreter builds all three environments, and the pin
+  # moves deliberately (dependabot ignores patch releases of `python`).
+  - python=3.15
   - pip:
     - -r requirements.txt   # unpinned: always the latest
