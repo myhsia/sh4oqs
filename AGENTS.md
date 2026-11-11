@@ -149,6 +149,19 @@ Each line prints `[PASS]`/`[FAIL]` with the achieved maximum error.  The bare-sy
 `1/sqrt(n_traj)`, so a rising floor there means an estimator bias, not noise.  The suite runs in CI
 on every push (see below).
 
+**Session check.**  The `upkeep` plugin runs one check declared here at session start, with the
+repository as the working directory, so it can cover what CI cannot: the gitignored local data.
+
+Session check: `source/tools/session_check.sh`
+
+`session_check.sh` exits 0 silently when clean, 1 with one line per problem --- a dangling
+`output/data` symlink or an unparseable `config/*.yaml` --- and never 2 (it runs even without a
+Python with `pyyaml`, skipping only the config half).  It is deliberately lighter than the synced
+check in `mkct4oqs`: the archives here are produced by CI and already validated there, and the only
+authored symlinks are the `corrmat_heom.npz` links.  A dangling link is repaired with
+`bash source/tools/link_heom.sh`, which is the failure a workspace rename produces in bulk (the
+implementation moved from `Dou_Group/oqs/` to `Dou_Group/`, leaving eleven of them).
+
 ## CI
 **Dependencies: the bot proposes, CI decides** (the policy and its reasoning are in the
 machine-global `repo-rules` skill, "Local and CI parity").  `.github/dependabot.yml` watches
