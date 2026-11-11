@@ -53,7 +53,7 @@ def _parse_args():
                         help = "Number of bath modes")
     parser.add_argument("-wmax_factor", type = float, default = 10.0,
                         help = "Quadrature cutoff, in units of wC")
-    parser.add_argument("-dt", type = float, default = 0.005,
+    parser.add_argument("-dt", type = float, default = 0.01,
                         help = "Output time step (default: 0.01)")
     parser.add_argument("-seed", type = int, default = 0,
                         help = "RNG seed")

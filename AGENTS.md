@@ -101,13 +101,10 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 - Trajectory budgets: `N_TRAJ` (the defaults, used when `-n_traj` is absent) is `mash` 40000,
   `fssh` 20000, `lsc` 40000, `ehrenfest` 20000.  The **production** setting is larger and is passed
   explicitly: `N = 3200`, `wmax_factor = 10`, `dt = 0.01`, **MASH 480 000**, **FSSH 120 000**.
-- **Step size.** `-dt` canonical value is **0.01** (see Validity for the bound).  An anharmonic run
-  additionally caps the step at `dt <= 0.4 / w_max`; without that, a rare high-energy trajectory
-  diverges at the velocity-Verlet stability limit.
-- **Known drift, code not yet changed:** `sh.py`'s `argparse` default is still `0.005`, while its
-  own help text, `run()`'s signature and the `data.yaml` input description say `0.01`.  A bare
-  `python sh.py` therefore runs `0.005`.  The parser default must be corrected to `0.01`; until
-  then, pass `-dt 0.01` (or leave the CI input empty only if you accept `0.005`).
+- **Step size.** `-dt` is **0.01** by default, in the parser, its help text, `run()`'s signature and
+  the `data.yaml` input description alike.  An anharmonic run additionally caps the step at
+  `dt <= 0.4 / w_max`; without that, a rare high-energy trajectory diverges at the velocity-Verlet
+  stability limit.
 - Parallelism: `-nproc` runs the cases as separate processes (default 4), `-njobs` splits each
   case's ensemble over inner workers (default -1: share the cores over the cases).  Workers return
   results and the parent writes every archive, so no two processes write the same file.  With one

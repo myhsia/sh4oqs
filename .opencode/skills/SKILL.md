@@ -60,10 +60,9 @@ groups (a method holding only some cases); both are defined in `mkct4oqs/AGENTS.
   (`mash` 40000, `fssh` 20000, `lsc` 40000, `ehrenfest` 20000).  The **production** setting is
   larger and passed explicitly: `N = 3200`, `wmax_factor = 10`, `dt = 0.01`, MASH 480 000,
   FSSH 120 000.  Flags: `-n_traj -N -wmax_factor -dt -seed -sampling -label -nproc -njobs`.
-- **Step size:** canonical `-dt` is **0.01**; an anharmonic run caps it at `dt <= 0.4 / w_max`
+- **Step size:** `-dt` is **0.01** by default, in the parser, its help text, `run()` and the
+  workflow description alike; an anharmonic run caps it at `dt <= 0.4 / w_max`
   (the velocity-Verlet bound), e.g. `0.0033` for the fast-bath scenario, where `w_max = 120`.
-  Note the `argparse` default is still `0.005` although the help text, `run()` and the workflow
-  description say `0.01`; pass `-dt 0.01` until the parser is corrected.
 - Parallelism: `-nproc` (default 4) runs the cases as separate processes; `-njobs` (default -1)
   splits each case's ensemble over inner workers, sharing the cores over the cases.  The parent
   process writes every archive, so no two processes write the same file.  With one case per process
