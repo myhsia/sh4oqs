@@ -56,7 +56,9 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 - `source/library/surface_hopping/validation.py` — regression suite (exact single-mode and bare
   two-level references).
 - `source/library/{qutils,fsutils,pltools,extended_deom,mre,corrmat}.py` — **synced** shared
-  modules: quadrature and the Pauli basis, file IO (`save_group`/`load_group`), the window parser,
+  modules: the Pauli basis and `ladder_ops`, the Ohmic density with its Gauss-Legendre modes
+  (`ohmic_modes`), thermal bath sampling (`sample_bath`), the coupling parser (`parse_coeffs`),
+  file IO (`save_group`/`load_group`), the window parser,
   the extended-DEOM reference, the error metric, the correlation-matrix basis/contractions, and
   the label pinning (`_pin_ylabel`/`_pin_text`/`_pin_xlabel`).
   The five reported observables are contractions of `C` (`corrmat.py`), computed at plot time only.
