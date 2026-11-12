@@ -8,12 +8,14 @@ for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     os.environ.setdefault(_var, "1")
 import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "./library"))
-sys.pycache_prefix = os.path.abspath("./output/pycache")
+import paths
+paths.install_cache_env()
+if not paths.is_frozen():
+    sys.pycache_prefix = os.path.abspath("./output/pycache")
 from surface_hopping import mash, fssh
 from qutils import ohmic_modes, parse_coeffs
-from fsutils import load_config, save_group
+from fsutils import load_config, save_group, resolve_configs, parse_xlims
 from corrmat import BASIS
-from pltools import parse_xlims
 
 
 # Run selection — comment out entries to skip.
@@ -42,8 +44,12 @@ def _case_name(quantum: bool, anharm: bool) -> str:
 def _parse_args():
     parser = argparse.ArgumentParser(
         description = "Surface-hopping reference dynamics for the spin-boson model.")
-    parser.add_argument("prefix", nargs = "?", default = None,
-                        help = "Config prefix (default: run RUNLIST)")
+    parser.add_argument("configs", nargs = "*", default = None,
+                        help = "Configs: names, .yaml paths or glob patterns "
+                               "such as 'config/*.yaml' (default: run RUNLIST)")
+    parser.add_argument("-config-dir", type = str, default = None,
+                        help = "where bare config names are looked up (default: "
+                               "./config, else the config/ beside a frozen binary)")
     parser.add_argument("-method",
                         choices = ["mash", "fssh", "lsc", "ehrenfest", "all"],
                         default = "all", help = "Trajectory method")
@@ -66,16 +72,22 @@ def _parse_args():
                         help = "Number of cases to run in parallel (default: %(default)s)")
     parser.add_argument("-njobs", type = int, default = -1,
                         help = "Inner workers per case (default: -1, share the cores)")
+    parser.add_argument("-outdir", type = str, default = "./output/data",
+                        help = "Root of the data tree (default: %(default)s)")
+    parser.add_argument("-version", "--version", action = "version",
+                        version = paths.version_string("sh"),
+                        help = "print the build identity and exit")
     return parser.parse_args()
 
 
-def _compute(prefix: str, method: str = "mash", quantum: bool = True,
+def _compute(source: str, method: str = "mash", quantum: bool = True,
              anharm: bool = False, n_traj: int = 40000, N: int = 200,
              wmax_factor: float = 10.0, dt: float = 0.01, seed: int = 0,
-             n_jobs: int = 1, label: str = ""):
-    """Compute one ``(prefix, method, case)``; return ``(t, tag, case, C)``."""
+             n_jobs: int = 1, label: str = "", config_dir: str = None):
+    """Compute one ``(config, method, case)``; return ``(t, tag, case, C)``."""
     # 3. Parameters (physical values; ``scale`` is a numerical device only)
-    params    = load_config(prefix)
+    name      = os.path.splitext(os.path.basename(source))[0]
+    params    = load_config(source, config_dir)
     epsilon   = params["epsilon"]
     Delta     = params["Delta"]
     lambd     = params["lambd"]
@@ -109,7 +121,7 @@ def _compute(prefix: str, method: str = "mash", quantum: bool = True,
     tag = f"{method}_{case}"
     if label:
         tag += "_" + label
-    print(f"[{prefix}] {tag}: N={N} n_traj={n_traj} tf={tf:g} dt={dt:g} "
+    print(f"[{name}] {tag}: N={N} n_traj={n_traj} tf={tf:g} dt={dt:g} "
           f"beta={beta} wC={wC} lambd={lambd} a={a:.4f} n_jobs={n_jobs}",
           flush = True)
 
@@ -132,7 +144,8 @@ def _compute(prefix: str, method: str = "mash", quantum: bool = True,
     return t, tag, case, C
 
 
-def _save(prefix: str, method: str, results: dict, label: str = ""):
+def _save(name: str, method: str, results: dict, label: str = "",
+          outdir: str = "./output/data"):
     """Write one archive per method, with one matrix per case.
 
     Only the parent writes, and all four cases are in hand, so the file has the
@@ -140,7 +153,7 @@ def _save(prefix: str, method: str, results: dict, label: str = ""):
     post-processing merge is needed.
     """
     tag = method + (f"_{label}" if label else "")
-    save_group({c: results[c] for c in results}, "./output/data/" + prefix,
+    save_group({c: results[c] for c in results}, os.path.join(outdir, name),
                "corrmat_" + tag + ".npz", identifier = r"$\mathcal{C}(t)$",
                branch = BASIS, component = BASIS, compress = True)
 
@@ -164,18 +177,21 @@ RUNLIST = [
     # "J-strong_coupling",
     # "K-linear_quad",
 ]
-def run(prefix: str, methods = METHODS, cases = CASES, n_traj = None,
+def run(source: str, methods = METHODS, cases = CASES, n_traj = None,
         N: int = 200, wmax_factor: float = 10.0, dt: float = 0.01,
         seed: int = 0, nproc: int = 4, njobs: int = -1,
-        sampling: str = "auto", label: str = ""):
+        sampling: str = "auto", label: str = "",
+        outdir: str = "./output/data", name: str = None,
+        config_dir: str = None):
     """Run one or more methods across the selected cases for a single config.
 
     ``n_traj`` defaults to the per-method ``N_TRAJ`` budget.  The cases run as
     ``nproc`` parallel processes (at most one per case) and, when there are
     spare cores, each case splits its trajectories over ``njobs`` inner
     workers (``-1``: share the cores over the cases).  The parent process
-    writes every archive.
+    writes every archive under ``outdir``.
     """
+    name    = name or os.path.splitext(os.path.basename(source))[0]
     nproc   = max(1, int(nproc))
     workers = max(1, min(nproc, len(cases)))
     if njobs is not None and int(njobs) > 0:
@@ -183,7 +199,7 @@ def run(prefix: str, methods = METHODS, cases = CASES, n_traj = None,
     elif workers >= len(cases) and len(cases) > 1:
         n_inner = 1          # nested pools only add overhead here
     else:
-        n_inner = max(1, (os.cpu_count() or 1) // workers)
+        n_inner = max(1, paths.n_cpus() // workers)
     for method in methods:
         nt = N_TRAJ[method] if n_traj is None else n_traj
         specs = []
@@ -191,8 +207,8 @@ def run(prefix: str, methods = METHODS, cases = CASES, n_traj = None,
             quantum, anharm = _CASE_MATRIX[case]
             if sampling != "auto":
                 quantum = sampling == "quantum"
-            specs.append((prefix, method, quantum, anharm, nt, N, wmax_factor,
-                          dt, seed, n_inner, label))
+            specs.append((source, method, quantum, anharm, nt, N, wmax_factor,
+                          dt, seed, n_inner, label, config_dir))
         # Collect every case in the parent, then write one archive per method.
         results = {}
         if workers == 1 or len(specs) == 1:
@@ -204,16 +220,21 @@ def run(prefix: str, methods = METHODS, cases = CASES, n_traj = None,
                     mp_context = multiprocessing.get_context("fork")) as pool:
                 for t, _tag, case, C in pool.map(_case_job, specs):
                     results[case] = (t, C)
-        _save(prefix, method, results, label)
+        _save(name, method, results, label, outdir)
 
 
 if __name__ == "__main__":
     args = _parse_args()
     methods = METHODS if args.method == "all" else [args.method]
-    for prefix in ([args.prefix] if args.prefix else RUNLIST):
-        run(prefix, methods = methods, cases = CASES, n_traj = args.n_traj,
+    try:
+        configs = resolve_configs(args.configs or RUNLIST, args.config_dir)
+    except FileNotFoundError as exc:
+        raise SystemExit(f"error: {exc}")
+    for name, path in configs:
+        run(path, name = name, config_dir = args.config_dir,
+            methods = methods, cases = CASES, n_traj = args.n_traj,
             N = args.N, wmax_factor = args.wmax_factor, dt = args.dt,
             seed = args.seed, nproc = args.nproc, njobs = args.njobs,
-            sampling = args.sampling, label = args.label)
+            sampling = args.sampling, label = args.label, outdir = args.outdir)
 
 # %%

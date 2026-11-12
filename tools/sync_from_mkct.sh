@@ -12,5 +12,9 @@ rsync -a --delete "$src/config/" "$root/source/config/"
 cp "$src/reference.py" "$root/source/reference.py"
 cp "$src/FIG0@corrmat.py" "$src/FIG4@robustness.py" "$root/source/"
 cp "$src/library/qutils.py" "$src/library/fsutils.py" "$src/library/pltools.py" "$root/source/library/"
+cp "$src/library/paths.py" "$root/source/library/"
 cp "$src/library/extended_deom.py" "$src/library/mre.py" "$src/library/corrmat.py" "$root/source/library/"
-echo "synced config/, reference.py, the FIG scripts and qutils/fsutils/pltools/extended_deom/mre/corrmat.py and tools/link_heom.sh from $src"
+cp "$root/../mkct4oqs/tools/build_binary.sh" "$root/../mkct4oqs/tools/fetch-binaries.sh" \
+   "$root/../mkct4oqs/tools/push-binaries.sh" "$root/../mkct4oqs/tools/verify_binary.py" \
+   "$root/tools/"
+echo "synced config/, reference.py, the FIG scripts and qutils/fsutils/pltools/paths/extended_deom/mre/corrmat.py and the frozen-binary tools from $src"

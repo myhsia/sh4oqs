@@ -11,3 +11,6 @@
 /**/__pycache__/
 /**/output/
 
+
+# Frozen-binary output (tools/build_binary.sh, tools/fetch-binaries.sh)
+/dist/

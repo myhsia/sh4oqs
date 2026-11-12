@@ -1,4 +1,5 @@
 import numpy as np
+from fsutils import parse_xlims  # re-exported: the figure scripts import it here
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -29,19 +30,6 @@ PlotLine: TypeAlias = (
 LogLine: TypeAlias = (
     tuple[np.ndarray, np.ndarray, str, str, float, str, float, str]
 )
-
-
-def parse_xlims(raw_xlims, reorder: bool = True):
-    """Normalize YAML ``xlims`` into ``[[x_lo, x_hi], x_step, ...]``.
-
-    When ``reorder`` is true and two windows are given, the two groups are
-    swapped so that ``xlims[0]`` is the larger (later) window, i.e.
-    ``xlims[0][1]`` is the maximum time (used for the calculation range).
-    """
-    xlims = [tuple(x) if isinstance(x, list) else x for x in raw_xlims]
-    if reorder and len(xlims) == 4:
-        xlims = [xlims[2], xlims[3], xlims[0], xlims[1]]
-    return xlims
 
 
 class GridPlt:

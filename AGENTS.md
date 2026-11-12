@@ -55,7 +55,7 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
   spin-LSC, selected with `-method lsc`.
 - `source/library/surface_hopping/validation.py` — regression suite (exact single-mode and bare
   two-level references).
-- `source/library/{qutils,fsutils,pltools,extended_deom,mre,corrmat}.py` — **synced** shared
+- `source/library/{qutils,fsutils,pltools,paths,extended_deom,mre,corrmat}.py` — **synced** shared
   modules: the Pauli basis and `ladder_ops`, the Ohmic density with its Gauss-Legendre modes
   (`ohmic_modes`), thermal bath sampling (`sample_bath`), the coupling parser (`parse_coeffs`),
   file IO (`save_group`/`load_group`), the window parser,
@@ -100,7 +100,9 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 - Selection: the `METHODS` / `CASES` lists in `sh.py` (comment out entries) or `-method`
   (`fssh`, `mash`, `lsc`, `ehrenfest`, `all`).  `RUNLIST` holds only `A-base_line` for now; the rest
   of the demos are commented out.
-- Flags: `-n_traj -N -wmax_factor -dt -seed -sampling -label -nproc -njobs`.
+- Flags: `-n_traj -N -wmax_factor -dt -seed -sampling -label -nproc -njobs -outdir`, plus
+  `-version` (build identity); the frozen artifacts are verified by `tools/verify_binary.py`,
+  which drives them through their normal flags with a generated config.
 - Trajectory budgets: `N_TRAJ` (the defaults, used when `-n_traj` is absent) is `mash` 40000,
   `fssh` 20000, `lsc` 40000, `ehrenfest` 20000.  The **production** setting is larger and is passed
   explicitly: `N = 3200`, `wmax_factor = 10`, `dt = 0.01`, **MASH 480 000**, **FSSH 120 000**.
@@ -204,6 +206,57 @@ tar -xzf /tmp/sh-data.tar.gz -C source/output/data/   # -> source/output/data/<c
 ```
 
 Passing `configs="<all eleven>"` gives 11 × 2 = 22 jobs, one per `(config, method)`.
+
+## Frozen binaries
+
+`tools/build_binary.sh sh` freezes the driver with PyInstaller 6.22 (onedir) into `dist/sh/`,
+packs `dist/sh-<os>-<arch>.tar.gz`, and runs `--version` plus `tools/verify_binary.py` on the frozen executable
+**before** packing.  The bundle carries `_buildinfo.json` (git sha, build date, interpreter,
+`pip freeze`, excluded modules) and **no configuration**: a packed binary takes its YAMLs from the
+filesystem.  Platforms: `linux-x64`, `linux-arm64`, `macos-arm64`; macOS x86_64 is absent because
+`llvmlite` ships no Intel-mac wheel since 0.46.0 — this driver needs numba, so it could not be
+built there at all.
+
+- **Configs are arguments, never payload.**  The positional configs accept names, `.yaml` paths or
+  glob patterns (`'config/*.yaml'`), expanded by the driver itself; `-config-dir DIR` says where
+  bare names live (default `./config`, then the `config/` beside the bundle when frozen).  A
+  missing config is `error: no config file at …` and exit 1.
+- **The bundle is the compute path only.**  `matplotlib`, `PIL`, `qutip`, `lxml`, `tkinter`,
+  `IPython` and `pytest` are excluded; `parse_xlims` lives in `fsutils` (re-exported by `pltools`
+  for the figure scripts), so this driver no longer imports the plotting stack at all.
+
+- **Linux is built inside `quay.io/pypa/manylinux_2_28_*` (glibc 2.28), not on the runner.**  The
+  HPC login node is Rocky Linux 9.6 / **glibc 2.34**, so a binary built on `ubuntu-22.04` (2.35)
+  does not start there.  CI proves the floor twice: `objdump -T` over every bundled ELF for its
+  highest `GLIBC_` symbol, then the packed tarball run in a bare `rockylinux:9` container.
+- **Publishing.**  `.github/workflows/binaries.yaml` runs when `CI` finishes **green on `main`**
+  (and on manual dispatch), and publishes a release tagged `bin-<sha7>` with the tarball, its
+  `.sha256`, and `sh-<platform>.json`.
+- **Fetching.**  `bash tools/fetch-binaries.sh sh [-p PLATFORM]... [ref]` downloads all three
+  platforms into `./dist/` by default (`-p` restricts), checks each checksum, manifest sha,
+  archive member and machine type, and extracts plus verifies only the **host** asset; a foreign
+  asset's runtime proof is the CI run and, for `linux-x64`, the push below.  A commit with no
+  release falls back to the newest `bin-*` one and prints the sha it received.
+- **Pushing to the cluster.**  `bash tools/push-binaries.sh sh [ref]` fetches `linux-x64`,
+  uploads it with `source/config`, extracts in `~/oqs-bin` with up to three attempts, runs
+  `--version` and the verifier there and closes the connection.  Manual only.
+
+**The rule.**  A *fundamental* change (driver, shared library, config, requirements) is not
+finished until the `bin-<sha7>` release exists for that commit and `fetch-binaries.sh` has
+downloaded it with a passing numeric check; `*.md` is not fundamental.  Report the sha and the
+verification line.
+
+On the cluster: extract `dist/sh-linux-x64.tar.gz` and the configs in the home directory, then
+`python3 verify_binary.py sh sh/sh` once on the login node and `./sh/sh A-base_line -method mash …` inside Slurm
+jobs.  No Python, network or modules are needed; the configs come from `-config-dir` or a
+`config/` beside the `sh/` directory, `-outdir` redirects the data tree and `-njobs -1` reads the
+Slurm allocation instead of the node.
+
+**Measured (2026-11-12, macOS 27 arm64, Python 3.14.7)**: after the compute-only trimming the
+tarball is 57 MB (152 MB unpacked — `llvmlite` dominates and cannot go) and the frozen
+verification reproduces the source value to 6.1e-10 relative.  The Linux side is measured too: the
+workflow's bare `rockylinux:9` run passes, and on the cluster itself (Rocky 9.6, glibc 2.34) the
+`linux-x64` bundle reports its commit sha and passes the numeric verification.
 
 ## Git style
 

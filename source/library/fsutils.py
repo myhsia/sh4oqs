@@ -1,7 +1,8 @@
 """Filesystem and IO helpers: config loading, output writers and loaders."""
-import copy, os, yaml
+import copy, glob, os, yaml
 import numpy as np
 from pathlib import Path
+import paths
 
 
 def _apply_relative(value, base):
@@ -33,16 +34,85 @@ def _merge(base, override):
     return merged
 
 
-def load_config(prefix: str, config_dir: str = "./config"):
-    with open(os.path.join(config_dir, prefix + ".yaml"), "r") as f:
+def parse_xlims(raw_xlims, reorder: bool = True):
+    """Normalize YAML ``xlims`` into ``[[x_lo, x_hi], x_step, ...]``.
+
+    When ``reorder`` is true and two windows are given, the two groups are
+    swapped so that ``xlims[0]`` is the larger (later) window, i.e.
+    ``xlims[0][1]`` is the maximum time (used for the calculation range).
+    """
+    xlims = [tuple(x) if isinstance(x, list) else x for x in raw_xlims]
+    if reorder and len(xlims) == 4:
+        xlims = [xlims[2], xlims[3], xlims[0], xlims[1]]
+    return xlims
+
+
+def _config_path(source, config_dir: str = None) -> str:
+    """Resolve one spec: a path (or ``.yaml`` name) stays, a bare name gains one."""
+    text = str(source)
+    if (text.endswith((".yaml", ".yml")) or os.sep in text
+            or (os.altsep is not None and os.altsep in text)):
+        return text
+    return os.path.join(paths.config_dir(config_dir), text + ".yaml")
+
+
+def load_config(source: str, config_dir: str = None):
+    """Load one YAML config and resolve its ``base:`` chain.
+
+    ``source`` is a bare name (looked up in ``config_dir``, which defaults to
+    :func:`paths.config_dir`) or a path to a ``.yaml`` file.  A ``base:`` entry
+    resolves **next to the file that names it**, so a config outside the
+    default directory keeps its chain intact.
+
+    Nothing is ever loaded from a bundle: a frozen driver reads the YAMLs the
+    user points it at, and a missing file raises ``FileNotFoundError`` naming
+    the path it tried.
+    """
+    path = _config_path(source, config_dir)
+    with open(path, "r") as f:
         override = yaml.safe_load(f)
-    base_name = override.pop("base", None)
-    if base_name is None:
+    base = override.pop("base", None)
+    if base is None:
         return override
-    base_name = os.path.splitext(str(base_name))[0]
-    with open(os.path.join(config_dir, base_name + ".yaml"), "r") as f:
+    directory = os.path.dirname(path) or "."
+    base_name = os.path.splitext(str(base))[0] + ".yaml"
+    base_path = (base_name if os.path.isabs(base_name)
+                 else os.path.join(directory, base_name))
+    with open(base_path, "r") as f:
         params = yaml.safe_load(f)
     return _merge(params, override)
+
+
+def resolve_configs(specs, config_dir: str = None):
+    """Expand config names, paths and glob patterns into ``[(name, path), ...]``.
+
+    The driver expands the pattern itself, so ``'config/*.yaml'`` works in any
+    shell and on a batch node that would not expand it.  A run is named by its
+    file stem, which is what names ``output/data/<name>/``; the given order is
+    kept and each glob's matches are sorted.  A pattern that matches nothing,
+    or a name that resolves to no file, raises ``FileNotFoundError`` here
+    rather than failing later inside a worker.
+    """
+    resolved, seen = [], set()
+    for spec in specs:
+        text = str(spec)
+        if glob.has_magic(text):
+            matched = sorted(glob.glob(text))
+            if not matched:
+                raise FileNotFoundError(f"no config matches {text!r}")
+        else:
+            matched = [_config_path(text, config_dir)]
+        for path in matched:
+            if not os.path.isfile(path):
+                raise FileNotFoundError(f"no config file at {path!r}")
+            key = os.path.abspath(path)
+            if key in seen:
+                continue
+            seen.add(key)
+            resolved.append((os.path.splitext(os.path.basename(path))[0], path))
+    if not resolved:
+        raise FileNotFoundError("no config given")
+    return resolved
 
 
 def ensure_dir(directory) -> None:

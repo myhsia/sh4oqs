@@ -32,7 +32,7 @@ import numpy as np
 
 from fsutils import (load_config, load_group, ensure_dir, moments_filename,
                      load_moments)
-from pltools import parse_xlims
+from fsutils import parse_xlims
 
 
 MAX_ERR_PCT = 1e3    # default cutoff for the markdown tables (%)
