@@ -1,6 +1,6 @@
 # Padé
-Pade_m: 9
-Pade_n: 14
+Pade_m: 10
+Pade_n: 13
 # Symbolic Moments
 linear: true
 quadratic: false
