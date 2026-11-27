@@ -26,9 +26,10 @@ import tempfile
 import time
 import zipfile
 
-# The reference scenario: the same parameters as config/A-base_line.yaml (the
-# plotting-only keys are irrelevant here).  JSON is valid YAML, so this is read
-# by the driver's yaml.safe_load as written.
+# A fixed smoke configuration (epsilon = 1, Delta = 0.5), kept independent of
+# config/A-base_line.yaml so a scenario tweak does not force a re-measurement of
+# every constant; plotting-only keys are irrelevant here.  JSON is valid YAML,
+# so this is read by the driver's yaml.safe_load as written.
 CONFIG = {
     "Pade_m": 9, "Pade_n": 14, "linear": True, "quadratic": False,
     "Delta": 0.5, "epsilon": 1.0, "beta": 0.6, "lambd": 0.4,

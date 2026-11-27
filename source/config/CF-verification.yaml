@@ -11,8 +11,9 @@ base: "A-base_line"
 # The article uses H_S = (Delta/2) sigma_z + epsilon sigma_x with Q = sigma_x,
 # Delta = 20, epsilon = 0, gamma = 0.5, omega_D = 1, beta = 5.  In this
 # repository's convention H_sys = (epsilon/2) sigma_z + Delta sigma_x with
-# V = sigma_z/2 that is: tunnelling zero, epsilon = 20 (so epsilon/2 = 10 is the
-# article's Delta/2), wC = omega_D, and the article's Ohmic density
+# V = sigma_z/2 that is: tunnelling zero, epsilon = 20 (the base's 2 times the
+# x10 override below; epsilon/2 = 10 is the article's Delta/2), wC = omega_D,
+# and the article's Ohmic density
 # J = 2*gamma*omega*exp(-omega/omega_D) is matched by lambd = 2*gamma*omega_D/pi
 # = 1/pi, written here as a factor of the reference scenario's 0.4.
 #
@@ -21,7 +22,7 @@ base: "A-base_line"
 # therefore a self-consistent CF-versus-reference check of the same Hamiltonian,
 # not a quantitative reproduction of the article's curve.
 Delta: "*0.0"
-epsilon: "*20.0"
+epsilon: "*10.0"
 beta: "/0.12"
 lambd: "/1.2566370614359172"
 wC: "/4.0"
