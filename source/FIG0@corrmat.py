@@ -88,9 +88,7 @@ def main(prefix: str, ref_dir: str = "./output/data", label: str = "",
 # Define the running demo list
 RUNLIST = [
     "A-base_line",
-    "B-slow_system",
     "C-no_bias",
-    "D-strong_tunneling",
     "E-fast_bath",
     "F-slow_bath",
     "G-lowT",

@@ -21,7 +21,7 @@ Usage::
 
     python sh_error.py                       # RUNLIST x all methods
     python sh_error.py --methods mash fssh
-    python sh_error.py --configs A_base_line --labels "" base all
+    python sh_error.py --configs A-base_line --labels "" base all
 """
 # %%
 # 1. Requirements
@@ -38,9 +38,7 @@ from pltools import parse_xlims
 # 2. Run selection
 RUNLIST = [
     "A-base_line",
-    "B-slow_system",
     "C-no_bias",
-    "D-strong_tunneling",
     "E-fast_bath",
     "F-slow_bath",
     "G-lowT",

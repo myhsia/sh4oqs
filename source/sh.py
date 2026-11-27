@@ -166,9 +166,7 @@ def _case_job(spec):
 
 RUNLIST = [
     "A-base_line",
-    # "B-slow_system",
     # "C-no_bias",
-    # "D-strong_tunneling",
     # "E-fast_bath",
     # "F-slow_bath",
     # "G-lowT",

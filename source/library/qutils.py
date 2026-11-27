@@ -183,7 +183,7 @@ def spin_boson(
     (``context/figures/abstract.tex``):
 
       LSBM: H_sys = (epsilon/2) * sigma_z + Delta * sigma_x,  V = sigma_z / 2
-      QSBM: H_sys = epsilon * |1><1| + Delta * sigma_x,        V = |1><1|
+      QSBM: H_sys = epsilon * |1><1|      + Delta * sigma_x,  V = |1><1|
 
     so the bias sets the gap (E_+ - E_- = epsilon at Delta = 0), the
     off-diagonal matrix element is Delta (unbiased splitting 2*Delta), and the
