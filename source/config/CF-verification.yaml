@@ -6,22 +6,27 @@ base: "A-base_line"
 # basis, so the two-level populations do not move.  That makes it useless as a
 # demo case, which is why it is in no RUNLIST, carries no manuscript figure and
 # is reported only as a verification row: it exists to show that the CF reaches
-# a known converged answer, and that the nohalf and Ohmic conventions are mapped
-# correctly.
+# a converged answer on a model whose reference is available.
 #
 # The article uses H_S = (Delta/2) sigma_z + epsilon sigma_x with Q = sigma_x,
 # Delta = 20, epsilon = 0, gamma = 0.5, omega_D = 1, beta = 5.  In this
-# repository's conventions (nohalf, coupling V = sigma_z) that is: tunnelling
-# zero, bias 20/2, wC = omega_D, and the Ohmic reorganization energy
-# lambd = 2*gamma*omega_D/pi = 0.3183, written here as a factor of the reference
-# scenario's 0.4.
+# repository's convention H_sys = (epsilon/2) sigma_z + Delta sigma_x with
+# V = sigma_z/2 that is: tunnelling zero, epsilon = 20 (so epsilon/2 = 10 is the
+# article's Delta/2), wC = omega_D, and the article's Ohmic density
+# J = 2*gamma*omega*exp(-omega/omega_D) is matched by lambd = 2*gamma*omega_D/pi
+# = 1/pi, written here as a factor of the reference scenario's 0.4.
+#
+# Because this repository's V carries the 1/2 and the article's Q does not, the
+# model's coupling is one quarter of the article's at this lambd.  The config is
+# therefore a self-consistent CF-versus-reference check of the same Hamiltonian,
+# not a quantitative reproduction of the article's curve.
 Delta: "*0.0"
-epsilon: "*10.0"
+epsilon: "*20.0"
 beta: "/0.12"
 lambd: "/1.2566370614359172"
 wC: "/4.0"
-# the moment scale follows the largest rate (2*epsilon = 20), so the numerical
-# rescaling is an order of magnitude below the reference scenario's
+# the moment scale follows the largest rate (the gap epsilon = 20), so the
+# numerical rescaling is an order of magnitude below the reference scenario's
 scale: "/10.0"
 # Dephasing window: many periods of the 2*epsilon oscillation plus the bath
 # memory, which decays on the 1/wC time scale.

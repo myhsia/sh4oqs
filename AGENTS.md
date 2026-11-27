@@ -96,7 +96,7 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 - The quantum cases draw the Wigner (quantum thermal) variance per mode, the classical cases the
   Boltzmann variance, which lies below the quantum zero-point; `-sampling {auto,quantum,classical}`
   overrides the per-case choice (`auto` is the default).
-- Linear coupling `V = sigma_z`; quadratic (`K-linear_quad`) `V = |1><1|`.
+- Linear coupling `V = sigma_z/2`; quadratic (`K-linear_quad`) `V = |1><1|`.
 - Selection: the `METHODS` / `CASES` lists in `sh.py` (comment out entries) or `-method`
   (`fssh`, `mash`, `lsc`, `ehrenfest`, `all`).  `RUNLIST` holds only `A-base_line` for now; the rest
   of the demos are commented out.

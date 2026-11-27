@@ -4,7 +4,7 @@ Pade_n: 14
 # Symbolic Moments
 linear: true
 quadratic: false
-Delta: 1.0
+Delta: 0.5
 epsilon: 1.0
 beta: 0.6
 lambd: 0.4

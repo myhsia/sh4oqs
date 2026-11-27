@@ -79,7 +79,7 @@ def main(prefix: str, corrmat: bool = False):
     ## 3.2 System Hamiltonian, Interaction Operator
     Hs, V = spin_boson(
         model   = "QSBM" if quadratic else "LSBM",
-        epsilon = epsilon, Delta = Delta, nohalf = True)
+        epsilon = epsilon, Delta = Delta)
     # 4. Calculation
     ## 4.1 Setup
     #### 4.1.1 Environment & Decompose

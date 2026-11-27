@@ -31,7 +31,7 @@ import zipfile
 # by the driver's yaml.safe_load as written.
 CONFIG = {
     "Pade_m": 9, "Pade_n": 14, "linear": True, "quadratic": False,
-    "Delta": 1.0, "epsilon": 1.0, "beta": 0.6, "lambd": 0.4,
+    "Delta": 0.5, "epsilon": 1.0, "beta": 0.6, "lambd": 0.4,
     "theta_B": 1.33, "wB": 1.0, "wC": 4.0, "anharmon": 0.4, "scale": 0.3,
     "Cayley_depth": 16, "Cayley_orders": 16, "xlims": [[0, 12], 4],
 }
@@ -41,11 +41,11 @@ CONFIG = {
 # spread of the mpmath quadrature, the CSR iterate, the TDVP steps and the seeded
 # ensemble.
 MOMENTS = {  # complex Omega_1..3 of qhm, by engine
-    "block_sp": [(0.0, 0.6), (-1.137824048904, 0.0), (0.0, -1.832083288027)],
-    "symbolic": [(0.0, 0.6), (-1.137824048904, 0.0), (0.0, -1.832083288027)],
+    "block_sp": [(0.0, 0.3), (-0.284456012226, 0.0), (0.0, -0.229010411003)],
+    "symbolic": [(0.0, 0.3), (-0.284456012226, 0.0), (0.0, -0.229010411003)],
 }
-DMRG_C00 = 5.047893617910e-01   # Re C_00 at t = 1, N=4 nmax=2 chi=8 dt=0.25
-SH_C00 = 0.786909497             # C_00 at t = 0.5, MASH 8000 trajectories
+DMRG_C00 = 7.934746515323e-01   # Re C_00 at t = 1, N=4 nmax=2 chi=8 dt=0.25
+SH_C00 = 0.913074810             # C_00 at t = 0.5, MASH 8000 trajectories
 
 #: dtype -> struct code, by (descriptor, itemsize).
 _CODES = {("<f8", 8): "d", (">f8", 8): "d", ("<f4", 4): "f", (">f4", 4): "f",
