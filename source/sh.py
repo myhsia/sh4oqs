@@ -166,12 +166,12 @@ def _case_job(spec):
 
 RUNLIST = [
     "A-base_line",
-    # "C-no_bias",
-    # "E-fast_bath",
-    # "F-slow_bath",
-    # "G-lowT",
-    # "H-highT",
-    # "K-linear_quad",
+    # "B-no_bias",
+    # "C-fast_bath",
+    # "D-slow_bath",
+    # "E-lowT",
+    # "F-highT",
+    # "G-linear_quad",
 ]
 def run(source: str, methods = METHODS, cases = CASES, n_traj = None,
         N: int = 200, wmax_factor: float = 10.0, dt: float = 0.01,

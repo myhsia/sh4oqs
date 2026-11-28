@@ -148,12 +148,12 @@ def main(prefix: str, corrmat: bool = False):
 
 RUNLIST  = [
     "A-base_line",
-    "C-no_bias",
-    "E-fast_bath",
-    "F-slow_bath",
-    "G-lowT",
-    "H-highT",
-    "K-linear_quad",
+    "B-no_bias",
+    "C-fast_bath",
+    "D-slow_bath",
+    "E-lowT",
+    "F-highT",
+    "G-linear_quad",
 ]
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description = "HEOM/extDEOM reference solver.")

@@ -38,12 +38,12 @@ from pltools import parse_xlims
 # 2. Run selection
 RUNLIST = [
     "A-base_line",
-    "C-no_bias",
-    "E-fast_bath",
-    "F-slow_bath",
-    "G-lowT",
-    "H-highT",
-    "K-linear_quad",
+    "B-no_bias",
+    "C-fast_bath",
+    "D-slow_bath",
+    "E-lowT",
+    "F-highT",
+    "G-linear_quad",
 ]
 CASES   = ["qhm", "qah", "chm", "cah"]
 METHODS = ["mkct", "mash", "fssh", "ehrenfest", "lsc"]
