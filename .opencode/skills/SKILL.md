@@ -19,7 +19,8 @@ through the mapping variables (MASH) while the bath is sampled classically.
 The four cases `QHM` (quantum harmonic), `QAH` (quantum anharmonic), `CHM` (classical harmonic)
 and `CAH` (classical anharmonic), with the Ohmic density
 `J(omega) = pi*lambd/wC * omega * exp(-omega/wC)` discretized by the shared Gauss-Legendre modes.
-The linear coupling is `V = sigma_z`; the quadratic case (`K-linear_quad`) uses `V = |1><1|`.
+The linear coupling is `V = sigma_z/2`; the quadratic case (`G-linear_quad`) uses `V = |1><1|`
+(whose `sigma_z` part already carries the `1/2`).
 The anharmonic quartic coefficient is `a = anharmon * sqrt(7/6)`.
 
 The initial bath is sampled per mode: a **quantum** case draws from the Wigner/Gaussian

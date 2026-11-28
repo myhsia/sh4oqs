@@ -65,7 +65,7 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
   The five reported observables are contractions of `C` (`corrmat.py`), computed at plot time only.
 - `source/reference.py` — **synced** reference driver (HEOM / extended DEOM, writes
   `corrmat_heom.npz`).
-- `source/config/` — **synced** configs (`A-base_line` … `K-linear_quad`, plus the retired
+- `source/config/` — **synced** configs (`A-base_line` … `G-linear_quad`, plus the retired
   `A-base_line_tf6` test config).  `mkct4oqs` owns them.
 - `source/FIG0@corrmat.py`, `source/FIG4@robustness.py` — **synced** canonical figure scripts:
   `FIG0` draws the 4x4 `C_ij(t)` pages of every method found here and `FIG4` the
@@ -96,7 +96,7 @@ tooling/upkeep, and local/CI parity live in the global `repo-rules` skill
 - The quantum cases draw the Wigner (quantum thermal) variance per mode, the classical cases the
   Boltzmann variance, which lies below the quantum zero-point; `-sampling {auto,quantum,classical}`
   overrides the per-case choice (`auto` is the default).
-- Linear coupling `V = sigma_z`; quadratic (`K-linear_quad`) `V = |1><1|`.
+- Linear coupling `V = sigma_z/2`; quadratic (`G-linear_quad`) `V = |1><1|`.
 - Selection: the `METHODS` / `CASES` lists in `sh.py` (comment out entries) or `-method`
   (`fssh`, `mash`, `lsc`, `ehrenfest`, `all`).  `RUNLIST` holds only `A-base_line` for now; the rest
   of the demos are commented out.
@@ -270,7 +270,7 @@ Labels: **measured** = a run cited by its artifact/command; **derived** = a stat
 
 - **Step size `dt = 0.01`** — derived: the anharmonic guard keeps `w_max * dt <= 0.4`, inside the
   velocity-Verlet stability bound; the cap was `0.15 / w_max` before and was relaxed because the
-  step only smoothed the curves while dominating wall time.  For `E-fast_bath` (`wC = 12`,
+  step only smoothed the curves while dominating wall time.  For `C-fast_bath` (`wC = 12`,
   `w_max = 120`) the guard gives `dt = 0.0033`.
 - **Case → sampling mapping** — derived, not fitted: `qhm/qah` use the quantum marginal, `chm/cah`
   the classical one, so the four cases separate the two approximations (sampling and quartic term).

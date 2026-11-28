@@ -169,7 +169,7 @@ def _mash_traj_numba(Delta, omega, c, q, p, S0, t, aq,
 
 def _model_default(epsilon):
     """LSBM model coefficients ``(pv0,pv1,pv2,pa0,pa1,pa2)``."""
-    return (0.0, 0.0, 0.0, epsilon, 1.0, 0.0)
+    return (0.0, 0.0, 0.0, 0.5 * epsilon, 0.5, 0.0)
 
 
 def _phi_of_Q(Delta, Q, model):

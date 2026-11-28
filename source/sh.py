@@ -96,8 +96,8 @@ def _compute(source: str, method: str = "mash", quantum: bool = True,
     quadratic = params["quadratic"]
     model     = None
     if quadratic:
-        # QSBM: H_sys = 2 epsilon |1><1| + Delta sigma_x, V = |1><1|,
-        # U(q) = a0 + a1 Q + a2 Q^2, so Vbar = epsilon + U/2 and A = -Vbar.
+        # QSBM: H_sys = epsilon |1><1| + Delta sigma_x, V = |1><1|,
+        # U(q) = a0 + a1 Q + a2 Q^2, so Vbar = (epsilon + U)/2 and A = -Vbar.
         theta_B = params["theta_B"]
         wB      = params["wB"]
         alp0    = lambd * theta_B ** 2
@@ -105,7 +105,7 @@ def _compute(source: str, method: str = "mash", quantum: bool = True,
         alp2    = 0.5 * wB * (theta_B ** 2 - 1.0)
         a2, a1, a0 = parse_coeffs([alp2, alp1, alp0],
                                   linear = params["linear"], quadratic = True)
-        pv0, pv1, pv2 = epsilon + a0 / 2.0, a1 / 2.0, a2 / 2.0
+        pv0, pv1, pv2 = (epsilon + a0) / 2.0, a1 / 2.0, a2 / 2.0
         model = (pv0, pv1, pv2, -pv0, -pv1, -pv2)
     a = float(params["anharmon"]) * np.sqrt(7.0 / 6.0) if anharm else 0.0
     xlims = parse_xlims(params["xlims"], reorder = True)
@@ -166,16 +166,12 @@ def _case_job(spec):
 
 RUNLIST = [
     "A-base_line",
-    # "B-slow_system",
-    # "C-no_bias",
-    # "D-strong_tunneling",
-    # "E-fast_bath",
-    # "F-slow_bath",
-    # "G-lowT",
-    # "H-highT",
-    # "I-weak_coupling",
-    # "J-strong_coupling",
-    # "K-linear_quad",
+    # "B-no_bias",
+    # "C-fast_bath",
+    # "D-slow_bath",
+    # "E-lowT",
+    # "F-highT",
+    # "G-linear_quad",
 ]
 def run(source: str, methods = METHODS, cases = CASES, n_traj = None,
         N: int = 200, wmax_factor: float = 10.0, dt: float = 0.01,
