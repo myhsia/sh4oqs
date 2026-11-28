@@ -15,7 +15,7 @@ anharmon: 0.4
 scale: 0.3
 # MKCT Plotting
 xlims:
-  - [0, 12]
+  - [0, 24]
   - 4
 absradius: 3
 absbias: 0
