@@ -21,7 +21,7 @@ Usage::
 
     python sh_error.py                       # RUNLIST x all methods
     python sh_error.py --methods mash fssh
-    python sh_error.py --configs A_base_line --labels "" base all
+    python sh_error.py --configs A-base_line --labels "" base all
 """
 # %%
 # 1. Requirements
@@ -38,16 +38,12 @@ from pltools import parse_xlims
 # 2. Run selection
 RUNLIST = [
     "A-base_line",
-    "B-slow_system",
-    "C-no_bias",
-    "D-strong_tunneling",
-    "E-fast_bath",
-    "F-slow_bath",
-    "G-lowT",
-    "H-highT",
-    "I-weak_coupling",
-    "J-strong_coupling",
-    "K-linear_quad",
+    "B-no_bias",
+    "C-fast_bath",
+    "D-slow_bath",
+    "E-lowT",
+    "F-highT",
+    "G-linear_quad",
 ]
 CASES   = ["qhm", "qah", "chm", "cah"]
 METHODS = ["mkct", "mash", "fssh", "ehrenfest", "lsc"]

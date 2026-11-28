@@ -77,11 +77,20 @@ def main(prefix: str, group: str = "mkct",
 
     params = load_config(prefix)
     xlims  = parse_xlims(params["xlims"], reorder = True)
-    # A two-window config (K) keeps the cut only for the population page; its
-    # correlation/coherence pages use the standard single-window 4-grid over
-    # [0, 24] with ticks every 6 (xlims[0][1]/xlims[1]*2 in config order).
+    # A cut config keeps the cut only for the population page; its correlation
+    # and coherence pages draw one window over the full span, with the tick
+    # spacing the config itself states (never a literal window here).
+    # parse_xlims(reorder=True) puts the later window first, so the spacing is
+    # taken from the window that reaches the end of the run.
     two_windows = len(xlims) == 4
-    std_xlims   = [[0, 24], 4] if two_windows else xlims
+    if two_windows:
+        windows   = (xlims[0], xlims[2])
+        lo        = min(w[0] for w in windows)
+        hi        = max(w[1] for w in windows)
+        step      = (xlims[0][1] - xlims[0][0]) / xlims[1]
+        std_xlims = [[lo, hi], max(2, int(round((hi - lo) / step)))]
+    else:
+        std_xlims = xlims
 
     # Linear coupling is compared against the standard HEOM; the quadratic case
     # against the extended DEOM (dissipaton) hierarchy.
@@ -164,16 +173,12 @@ def main(prefix: str, group: str = "mkct",
 # Define the running demo list
 RUNLIST = [
     "A-base_line",
-    "B-slow_system",
-    "C-no_bias",
-    "D-strong_tunneling",
-    "E-fast_bath",
-    "F-slow_bath",
-    "G-lowT",
-    "H-highT",
-    "I-weak_coupling",
-    "J-strong_coupling",
-    "K-linear_quad",
+    "B-no_bias",
+    "C-fast_bath",
+    "D-slow_bath",
+    "E-lowT",
+    "F-highT",
+    "G-linear_quad",
 ]
 if __name__ == "__main__":
     import argparse

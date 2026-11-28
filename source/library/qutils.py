@@ -172,15 +172,24 @@ def spin_boson(
     model: str = "LSBM", 
     epsilon: float = 1.0, 
     Delta: float = 0.0,
-    nohalf: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Hamiltonian & Coupling Generator for the Spin-Boson Model variants.
     Parameters:
       model   (str):     Model variant ('LSBM' / 'SBM' or 'QSBM' / 'QSB').
       epsilon (float):   Energy gap / bias parameter (epsilon).
       Delta   (float):   Tunneling amplitude (default: 0.0).
-      nohalf  (boolean): Double H_sys and V under 'LSBM', or
-                         double H_sys only under 'QSBM'.
+
+    The convention is the one of the manuscript's model figure
+    (``context/figures/abstract.tex``):
+
+      LSBM: H_sys = (epsilon/2) * sigma_z + Delta * sigma_x,  V = sigma_z / 2
+      QSBM: H_sys = epsilon * |1><1|      + Delta * sigma_x,  V = |1><1|
+
+    so the bias sets the gap (E_+ - E_- = epsilon at Delta = 0), the
+    off-diagonal matrix element is Delta (unbiased splitting 2*Delta), and the
+    coupling carries the 1/2 of the spin-boson literature.  With this V, the
+    Ohmic ``lambd`` is the reorganization energy of the coupled model,
+    ``(1/pi) int J(omega)/omega domega``.
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: (H_sys, V) as (2, 2) complex arrays.
@@ -189,18 +198,14 @@ def spin_boson(
     if model in ("LSBM", "SBM", "SSBM"):
         # Pauli matrices
         V     = Pauli("z") * 0.5
-        H_sys = Pauli("z") * 0.5 * epsilon + Pauli("x") * 0.5 * Delta
-        if nohalf:
-            V, H_sys = V * 2, H_sys * 2
+        H_sys = Pauli("z") * 0.5 * epsilon + Pauli("x") * Delta
     elif model in ("QSBM", "QSB"):
-        # |1⟩⟨1| projection operator
+        # |1⟩⟨1| projection operator (its sigma_z part already carries the 1/2)
         kb_01 = basis(d = 2, n = (0, 1), kind = "ketbra")
         kb_10 = basis(d = 2, n = (1, 0), kind = "ketbra")
         kb_11 = basis(d = 2, n = 1,      kind = "ketbra")
         V     = kb_11
-        H_sys = kb_11 * epsilon + 0.5 * Delta * (kb_01 + kb_10)
-        if nohalf:
-            H_sys *= 2
+        H_sys = kb_11 * epsilon + Delta * (kb_01 + kb_10)
     else:
         raise ValueError(f"Unknown model '{model}'. Available: 'LSBM', 'QSBM'.")
     return H_sys, V

@@ -14,7 +14,9 @@ General adiabatic model (as for MASH)::
     |+> = (cos(phi/2), sin(phi/2)),   E_+ = Vbar + Vz   (active = 0)
     |-> = (-sin(phi/2), cos(phi/2)),  E_- = Vbar - Vz   (active = 1)
 
-LSBM corresponds to ``(0,0,0, epsilon,1,0)``.
+LSBM corresponds to ``(0,0,0, epsilon/2, 1/2, 0)``: with H_sys =
+``(epsilon/2) sigz + Delta sigx`` and the coupling ``(sigz/2) Q``, the
+electronic Hamiltonian is ``H_el = (epsilon/2 + Q/2) sigz + Delta sigx``.
 
 Two optional refinements are implemented and were evaluated against the exact
 single-mode reference and HEOM: a Granucci/Persico decoherence damping
@@ -209,7 +211,7 @@ def _fssh_traj_numba(Delta, omega, c, q, p, psi, t, aq,
 
 def _default_model(epsilon):
     """LSBM model coefficients ``(pv0,pv1,pv2,pa0,pa1,pa2)``."""
-    return (0.0, 0.0, 0.0, epsilon, 1.0, 0.0)
+    return (0.0, 0.0, 0.0, 0.5 * epsilon, 0.5, 0.0)
 
 
 def _phi_of_Q(Delta, Q, model):

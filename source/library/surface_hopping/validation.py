@@ -33,9 +33,9 @@ def exact_1mode(epsilon, Delta, w0, c0, beta, t, rho0, Aop, Nf = 80, a = 0.0):
     I2, Inf = np.eye(2), np.eye(Nf)
     sz, sx = Pauli("z"), Pauli("x")
     q = (a_op + ad) / np.sqrt(2.0)
-    H = (np.kron(epsilon * sz + Delta * sx, Inf)
+    H = (np.kron(0.5 * epsilon * sz + Delta * sx, Inf)
          + np.kron(I2, w0 * (ad @ a_op + 0.5 * Inf))
-         + np.kron(c0 * sz, q))
+         + np.kron(0.5 * c0 * sz, q))
     if a != 0.0:
         H = H + np.kron(I2, (a ** 2 * w0 / 4.0) * (q @ q @ q @ q))
     pn = np.exp(-beta * w0 * np.arange(Nf))
@@ -55,13 +55,13 @@ def exact_1mode(epsilon, Delta, w0, c0, beta, t, rho0, Aop, Nf = 80, a = 0.0):
 
 def exact_1mode_qsbm(epsilon, Delta, w0, c0, beta, t, rho0, Aop,
                      alpha0 = 0.0, alpha1 = 1.0, alpha2 = 0.0, a = 0.0, Nf = 80):
-    """Exact single mode for QSBM: ``H_sys = 2 epsilon |1><1| + Delta sigma_x``,
+    """Exact single mode for QSBM: ``H_sys = epsilon |1><1| + Delta sigma_x``,
     ``V = |1><1|``, ``U(q) = a0 + a1 Q + a2 Q^2`` with ``Q = c0 q``."""
     a_op, ad = ladder_ops(Nf)
     I2, Inf = np.eye(2), np.eye(Nf)
     sx = Pauli("x")
     kb1 = basis(2, 1, kind = "ketbra")
-    Hs = 2.0 * epsilon * kb1 + Delta * sx
+    Hs = epsilon * kb1 + Delta * sx
     V = kb1
     q = (a_op + ad) / np.sqrt(2.0)
     U = (alpha0 * Inf + alpha1 * c0 * q + alpha2 * c0 ** 2 * (q @ q))
@@ -173,7 +173,7 @@ def test_single_mode_qsbm(tol = 0.08, n_traj = 30000, seed = 11):
     w0, c0 = 1.0, 0.5
     alpha0, alpha1, alpha2 = 0.5, 1.0, 0.3
     rho0 = basis(2, 0, kind = "ketbra")
-    pv0, pv1, pv2 = epsilon + alpha0 / 2.0, alpha1 / 2.0, alpha2 / 2.0
+    pv0, pv1, pv2 = (epsilon + alpha0) / 2.0, alpha1 / 2.0, alpha2 / 2.0
     model = (pv0, pv1, pv2, -pv0, -pv1, -pv2)
     om, cc = np.array([w0]), np.array([c0])
     t = np.linspace(0.0, 4.0, 801)

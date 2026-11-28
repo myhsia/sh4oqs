@@ -79,7 +79,7 @@ def main(prefix: str, corrmat: bool = False):
     ## 3.2 System Hamiltonian, Interaction Operator
     Hs, V = spin_boson(
         model   = "QSBM" if quadratic else "LSBM",
-        epsilon = epsilon, Delta = Delta, nohalf = True)
+        epsilon = epsilon, Delta = Delta)
     # 4. Calculation
     ## 4.1 Setup
     #### 4.1.1 Environment & Decompose
@@ -148,16 +148,12 @@ def main(prefix: str, corrmat: bool = False):
 
 RUNLIST  = [
     "A-base_line",
-    "B-slow_system",
-    "C-no_bias",
-    "D-strong_tunneling",
-    "E-fast_bath",
-    "F-slow_bath",
-    "G-lowT",
-    "H-highT",
-    "I-weak_coupling",
-    "J-strong_coupling",
-    "K-linear_quad",
+    "B-no_bias",
+    "C-fast_bath",
+    "D-slow_bath",
+    "E-lowT",
+    "F-highT",
+    "G-linear_quad",
 ]
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description = "HEOM/extDEOM reference solver.")
