@@ -43,8 +43,6 @@ RUNLIST = [
     "F-slow_bath",
     "G-lowT",
     "H-highT",
-    "I-weak_coupling",
-    "J-strong_coupling",
     "K-linear_quad",
 ]
 CASES   = ["qhm", "qah", "chm", "cah"]
