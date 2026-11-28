@@ -1,18 +1,19 @@
 # Padé
-Pade_m: 10
+Pade_m: 8
 Pade_n: 13
+Nmax_Omega: 25
 # Symbolic Moments
 linear: true
 quadratic: false
 Delta: 1.0
 epsilon: 2.0
 beta: 0.6
-lambd: 0.4
+lambd: 0.5
 theta_B: 1.33
 wB: 1.0
 wC: 4.0
 anharmon: 0.4
-scale: 0.3
+scale: 0.25
 # MKCT Plotting
 xlims:
   - [0, 24]
